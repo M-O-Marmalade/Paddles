@@ -150,7 +150,7 @@ end
 --CREATE PONG WINDOW----------------------------------------------------------------------------- 
 function create_pong_window()
 
-  window_title = "| PONG |"
+  window_title = "PONG"
 
   -- create the main content column, but don't add any views yet:
   window_content = vb:row {
