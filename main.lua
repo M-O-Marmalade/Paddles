@@ -27,11 +27,11 @@ local ball = {25,25}
 local paddles = {25,25,0,0}
 local paddlesize = 9
 local direction = {1,0}
-local movespeed = 2
+local movespeed = 1
 local scores = {0,0}
 local pixelgrid = {}
 local msperframe = 40
-local maxspeed = 4
+local maxspeed = 3
 
 
 --TIMER FUNC----------------------------------------------------------
@@ -187,6 +187,7 @@ function create_pong_window()
       id = "start_stop",
       width = "100%",
       text = "START",
+      tooltip = "You can also use [SPACEBAR] to Start/Stop!",
       notifier = function(t)
         if vb.views.start_stop.text == "STOP" then
           tool:remove_timer(timer_func)
@@ -211,7 +212,7 @@ function create_pong_window()
       text = "Max Ball Speed"
     },
     vb:popup {
-      value = 4,
+      value = 3,
       items = {"1","2","3","4","5","6"},
       notifier = function(value)
         maxspeed = value
@@ -221,7 +222,7 @@ function create_pong_window()
       text = "Paddle Speed"
     },
     vb:popup {
-      value = 2,
+      value = 1,
       items = {"1","2","3","4","5"},
       notifier = function(value)
         movespeed = value
