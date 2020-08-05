@@ -5,7 +5,7 @@
   <Id>mom.MOMarmalade.Pong</Id>
   <Version>1.0</Version>
   <ApiVersion>6</ApiVersion>
-  <Category>Game</Category>
+  <Category>Game, Nibbles, Pong, Distraction</Category>
   <Description>It's Pong.</Description>
   <Homepage>https://xephyrpanda.wixsite.com/citrus64</Homepage>
 </RenoiseScriptingTool>
