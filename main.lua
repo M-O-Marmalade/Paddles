@@ -32,6 +32,7 @@ local scores = {0,0}
 local pixelgrid = {}
 local msperframe = 40
 local maxspeed = 3
+local spawnrange = 13
 
 
 --TIMER FUNC----------------------------------------------------------
@@ -112,16 +113,16 @@ local function timer_func()
     end
   elseif ball[1] == 0 then
     scores[2] = scores[2] + 1
-    vb.views.scoretext.text = "\nSCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
+    vb.views.scoretext.text = "SCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
     ball[1] = window_width/2
-    ball[2] = window_height/2
+    ball[2] = math.random(window_height/2 - spawnrange, window_height/2 + spawnrange)
     direction[1] = -direction[1]
     direction[2] = 0
   elseif ball[1] == 51 then
     scores[1] = scores[1] + 1
-    vb.views.scoretext.text = "\nSCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
+    vb.views.scoretext.text = "SCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
     ball[1] = window_width/2
-    ball[2] = window_height/2
+    ball[2] = math.random(window_height/2 - spawnrange, window_height/2 + spawnrange)
     direction[1] = -direction[1]
     direction[2] = 0
   end
@@ -228,10 +229,28 @@ function create_pong_window()
         movespeed = value
       end    
     },    
+    
+    vb:text {
+      text = "Spawn Range"
+    },
+    vb:popup {
+      value = 2,
+      items = {"Center","Half","Full"},
+      notifier = function(value)
+        if value == 1 then
+          spawnrange = 1
+        elseif value == 2 then
+          spawnrange = 13
+        elseif value == 3 then
+          spawnrange = 24
+        end
+      end    
+    },    
+    
     vb:text {
       font = "big",
       id = "scoretext",
-      text = "\nSCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
+      text = "SCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
     }
     
   }

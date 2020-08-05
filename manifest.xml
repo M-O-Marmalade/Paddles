@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RenoiseScriptingTool doc_version="0">
   <Name>Pong</Name>
-  <Author>MOMarmalade [xephyrpanda@yahoo.com]</Author>
   <Id>mom.MOMarmalade.Pong</Id>
-  <Version>1.0</Version>
+  <Version>1</Version>
   <ApiVersion>6</ApiVersion>
+  <Author>MOMarmalade [xephyrpanda@yahoo.com]</Author>
+  <AutoUpgraded>false</AutoUpgraded>
   <Category>Game, Nibbles, Pong, Distraction</Category>
   <Description>It's Pong.</Description>
   <Homepage>https://xephyrpanda.wixsite.com/citrus64</Homepage>
+  <Platform/>
+  <Icon/>
 </RenoiseScriptingTool>
