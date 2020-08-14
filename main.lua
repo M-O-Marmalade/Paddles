@@ -34,6 +34,28 @@ local msperframe = 40
 local maxspeed = 3
 local spawnrange = 13
 
+--REDRAW PADDLES------------------------------------------------
+local function redraw_paddles()
+
+  --paddle1
+  for i = 1, window_height do    
+    if i > paddles[1] + (paddlesize - 1)/2 or i < paddles[1] - (paddlesize - 1)/2 then
+      pixelgrid[2][i].bitmap = "Bitmaps/0.bmp"
+    else
+      pixelgrid[2][i].bitmap = "Bitmaps/1.bmp"
+    end
+  end  
+  
+  --paddle2
+  for i = 1, window_height do    
+    if i > paddles[2] + (paddlesize - 1)/2 or i < paddles[2] - (paddlesize - 1)/2 then
+      pixelgrid[49][i].bitmap = "Bitmaps/0.bmp"
+    else
+      pixelgrid[49][i].bitmap = "Bitmaps/1.bmp"
+    end
+  end  
+
+end
 
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
@@ -207,6 +229,7 @@ function create_pong_window()
       items = {"1","3","5","7","9","11"},
       notifier = function(value)
         paddlesize = value + value-1
+        redraw_paddles()
       end    
     },
     vb:text {
