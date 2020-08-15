@@ -2,7 +2,7 @@
 <RenoiseScriptingTool doc_version="0">
   <Name>Pong</Name>
   <Id>mom.MOMarmalade.Pong</Id>
-  <Version>2.0</Version>
+  <Version>2.1</Version>
   <ApiVersion>6</ApiVersion>
   <Author>MOMarmalade [xephyrpanda@yahoo.com]</Author>
   <AutoUpgraded>false</AutoUpgraded>

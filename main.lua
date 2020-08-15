@@ -218,6 +218,7 @@ function create_pong_window()
     max = 64,
     value = 0,
     midi_mapping = "mom.MOMarmalade.Pong:Control Slider",
+    tooltip = "This slider controls the paddle.\nTry mapping to a physical MIDI control!",
     notifier = function(value)
       
       local newvalue = value + 64
