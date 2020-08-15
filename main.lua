@@ -1,6 +1,6 @@
 --Pong - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = false 
+local debug_mode = true 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -34,6 +34,10 @@ local msperframe = 40
 local maxspeed = 3
 local spawnrange = 13
 
+local paddle1mode = 1
+local paddle1last = 1
+local midi_value = 25
+
 --REDRAW PADDLES------------------------------------------------
 local function redraw_paddles()
 
@@ -59,17 +63,46 @@ end
 
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
-
-  --paddle1
-  paddles[1] = paddles[1] + paddles[3] * movespeed
+  
+  if debug_mode then
+    print("paddles[1]: " .. paddles[1])
+  end
+  
+  --paddle1  
+  paddles[1] = paddles[1] + paddles[3] * movespeed  --adding arrow key input to position
+  
+  --stopping paddle1 from going past edge of screen
   if paddles[1] - (paddlesize + 1)/2 < 1 then paddles[1] = (paddlesize + 1)/2
   elseif paddles[1] + (paddlesize + 1)/2 > window_height then paddles[1] = window_height - (paddlesize - 1)/2
   end
   
-  if paddles[3] ~= 0 then    
-    for i = 1, movespeed do
-      pixelgrid[2][paddles[1] - (paddlesize + 1 + (i-1)*2)/2 * paddles[3]].bitmap = "Bitmaps/0.bmp"
+  if paddle1mode == 1 then
+  
+    --clearing previous location of paddle1
+    if paddles[3] ~= 0 then    
+      for i = 1, movespeed do
+        pixelgrid[2][paddles[1] - (paddlesize + 1 + (i-1)*2)/2 * paddles[3]].bitmap = "Bitmaps/0.bmp"
+      end
     end
+    
+  elseif paddle1mode == 2 then
+  
+    paddles[1] = midi_value
+    
+      --stopping paddle1 from going past edge of screen
+  if paddles[1] - (paddlesize + 1)/2 < 1 then paddles[1] = (paddlesize + 1)/2
+  elseif paddles[1] + (paddlesize + 1)/2 > window_height then paddles[1] = window_height - (paddlesize - 1)/2
+  end
+  
+    --clearing previous location of paddle1
+    for i = 1, (paddlesize + 1)/2 do  
+      if i == 1 then pixelgrid[2][paddle1last].bitmap = "Bitmaps/0.bmp"
+      else
+        pixelgrid[2][paddle1last - (i - 1)].bitmap = "Bitmaps/0.bmp"
+        pixelgrid[2][paddle1last + (i - 1)].bitmap = "Bitmaps/0.bmp"
+      end
+    end    
+  
   end
   
   --paddle2
@@ -177,6 +210,24 @@ function create_pong_window()
 
   -- create the main content column, but don't add any views yet:
   window_content = vb:row {
+  
+    vb:minislider {
+    height = 199,
+    width = 18,
+    min = -64,
+    max = 64,
+    value = 0,
+    midi_mapping = "mom.MOMarmalade.Pong:Control Slider",
+    notifier = function(value)
+      
+      local newvalue = value + 64
+      
+      paddle1mode = 2
+      paddle1last = paddles[1]
+      midi_value = 51 - math.floor((newvalue*window_height)/128)  
+      
+    end
+    }
   
   }
   
@@ -290,11 +341,13 @@ local function key_handler(dialog, key)
   if key.state == "pressed" then
     
     if key.name == "up" then
-  
+    
+      paddle1mode = 1
       paddles[3] = -1
   
     elseif key.name == "down" then
-  
+      
+      paddle1mode = 1
       paddles[3] = 1
   
     end
@@ -319,6 +372,19 @@ local function key_handler(dialog, key)
   
 end
 
+--MIDI HANDLER-----------------------------------------------------------------
+local function midi_handler(message)
+
+  if message:is_abs_value() then
+  
+    paddle1mode = 2
+    paddle1last = paddles[1]
+    midi_value = 51 - math.floor((message.int_value*window_height)/128)   
+  
+  end
+
+end
+
 --SHOW PONG WINDOW--------------------------------------------------------------------------------
 local function show_pong_window()
   if not pong_window_obj or not pong_window_obj.visible then
@@ -333,9 +399,16 @@ local function main_function()
   show_pong_window()
 end
 
---MENU/HOTKEY ENTRIES-------------------------------------------------------------------------------- 
+--MENU/HOTKEY/MIDI ENTRIES-------------------------------------------------------------------------------- 
 
 tool:add_menu_entry { 
   name = "Main Menu:Tools:Pong...", 
   invoke = function() main_function() end 
+}
+
+renoise.tool():add_midi_mapping{
+  name = "mom.MOMarmalade.Pong:Control Slider",
+  invoke = function(message)
+    midi_handler(message)
+  end
 }
