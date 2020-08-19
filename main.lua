@@ -6,7 +6,7 @@ if debug_mode then
   _AUTO_RELOAD_DEBUG = true
 end
 
-local move_slider_with_midi = false
+local move_slider_with_midi = true
 
 --GLOBALS-------------------------------------------------------------------------------------------- 
 local app = renoise.app() 
@@ -19,6 +19,8 @@ local window_content = nil
 local pong_window_obj = nil
 local window_height = 50
 local window_width = 50
+local popup_width = 60
+local default_margin = 0
 
 local key_handler_options = { 
   send_key_repeat = false, 
@@ -38,8 +40,14 @@ local spawnrange = 13
 
 local paddle1mode = 1
 local paddle1last = 1
-local paddle2last = 1
 local midi_value = 25
+local invert_p1_midi = false
+
+local two_player_mode = false
+local paddle2mode = 1
+local paddle2last = 1
+local midi_value_two = 25
+local invert_p2_midi = false
 
 local target = 0
 
@@ -66,20 +74,28 @@ local function redraw_paddles()
 
 end
 
---CPU DECISION---------------------------------------------------
-local function cpu_decision()
+--RECOLOR ALL---------------------------------------------------
+local function recolor_all(color)
 
+  for x = 1, window_width do
+    for y = 1, window_height do
+      pixelgrid[x][y].mode = color
+    end
+  end
   
-  return math.random(-1, 1)
-
+  vb.views.paddle_size_bitmap.mode = color
+  vb.views.paddle_speed_bitmap.mode = color
+  vb.views.ball_speed_bitmap.mode = color
+  vb.views.ball_spawn_range_bitmap.mode = color
+  vb.views.color_palette_bitmap.mode = color
+  vb.views.two_player_bitmap.mode = color
+  vb.views.invert_midi1_bitmap.mode = color
+  vb.views.invert_midi2_bitmap.mode = color
+  
 end
 
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
-  
-  if debug_mode then
-    print("paddles[1]: " .. paddles[1])
-  end
   
   --paddle1  
   paddles[1] = paddles[1] + paddles[3] * movespeed  --adding arrow key input to position
@@ -120,42 +136,47 @@ local function timer_func()
   
   --paddle2
   
-  paddle2last = paddles[2]
+  if two_player_mode then
   
-  if paddles[2] < ball[2] + target then --get direction
-    paddles[4] = 1 
-  elseif paddles[2] > ball[2] + target then 
-    paddles[4] = -1 
-  elseif paddles[2] == ball[2] + target then
-    paddles[4] = 0
+    paddles[2] = midi_value_two
+  
+    --stopping paddle2 from going past the edge of the screen
+    if paddles[2] - (paddlesize + 1)/2 < 1 then paddles[2] = (paddlesize + 1)/2
+    elseif paddles[2] + (paddlesize + 1)/2 > window_height then paddles[2] = window_height - (paddlesize - 1)/2
+    end
+  
+  
+  else  
+    paddle2last = paddles[2]
+  
+    if paddles[2] < ball[2] + target then --get direction
+      paddles[4] = 1 
+    elseif paddles[2] > ball[2] + target then 
+      paddles[4] = -1 
+    elseif paddles[2] == ball[2] + target then
+      paddles[4] = 0
+    end
+  
+    local distance_to_ball = math.abs(paddles[2] - ball[2])
+  
+    local how_far_to_move = math.min(movespeed, distance_to_ball + target)
+  
+    paddles[2] = paddles[2] + paddles[4]*how_far_to_move  --apply direction to cpu paddle  
+  
+    if paddles[2] - (paddlesize + 1)/2 < 1 then paddles[2] = (paddlesize + 1)/2
+    elseif paddles[2] + (paddlesize + 1)/2 > window_height then paddles[2] = window_height - (paddlesize - 1)/2
+    end
   end
   
-  local distance_to_ball = math.abs(paddles[2] - ball[2])
-  
-  local how_far_to_move = math.min(movespeed, distance_to_ball + target)
-  
-  if debug_mode then
-    print("distance_to_ball: " .. distance_to_ball)
-    print("how_far_to_move: " .. how_far_to_move)
+  --clearing previous location of paddle2
+  for i = 1, (paddlesize + 1)/2 do
+    if i == 1 then pixelgrid[49][paddle2last].bitmap = "Bitmaps/0.bmp"
+    else
+      pixelgrid[49][paddle2last - (i - 1)].bitmap = "Bitmaps/0.bmp"
+      pixelgrid[49][paddle2last + (i - 1)].bitmap = "Bitmaps/0.bmp"
+    end
   end
-  
-  paddles[2] = paddles[2] + paddles[4]*how_far_to_move  --apply direction to cpu paddle  
-  
-  if paddles[2] - (paddlesize + 1)/2 < 1 then paddles[2] = (paddlesize + 1)/2
-  elseif paddles[2] + (paddlesize + 1)/2 > window_height then paddles[2] = window_height - (paddlesize - 1)/2
-  end
-
-  
---  if how_far_to_move ~= 0 then
---    for i = 1, how_far_to_move do
---      pixelgrid[49][paddles[2] - (paddlesize + 1 + (i-1)*2)/2 * paddles[4]].bitmap = "Bitmaps/0.bmp"
-      
---      if debug_mode then
---        print("paddle2 erase y: " .. (paddles[2] - (paddlesize + 1 + (i-1)*2)/2 * paddles[4]))
---      end
---    end
---  end
-  
+    
   --ball
   pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp" 
     
@@ -174,13 +195,16 @@ local function timer_func()
         direction[2] = direction[2] + 1
       elseif ball[2] < paddles[1] then
         direction[2] = direction[2] - 1
+      elseif paddlesize == 1 then
+        direction[2] = direction[2] + math.random(-1,1)
       end
       
       if direction[2] > maxspeed then direction[2] = maxspeed
       elseif direction[2] < -maxspeed then direction[2] = -maxspeed
       end
-      
+            
       target = math.random(-1, 1) -- cpu decision making
+      if paddlesize == 1 then target = 0 end
       
       if debug_mode then
         print("target: " .. target)
@@ -194,7 +218,9 @@ local function timer_func()
       if ball[2] > paddles[2] then
         direction[2] = direction[2] + 1
       elseif ball[2] < paddles[2] then
-        direction[2] = direction[2] - 1     
+        direction[2] = direction[2] - 1   
+      elseif paddlesize == 1 then
+        direction[2] = direction[2] + math.random(-1,1)  
       end
       
       if direction[2] > maxspeed then direction[2] = maxspeed
@@ -225,15 +251,6 @@ local function timer_func()
   
   --drawing screen
   pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/1.bmp"
-  
-  --erasing paddle2
-  for i = 1, (paddlesize + 1)/2 do
-    if i == 1 then pixelgrid[49][paddle2last].bitmap = "Bitmaps/0.bmp"
-    else
-      pixelgrid[49][paddle2last - (i - 1)].bitmap = "Bitmaps/0.bmp"
-      pixelgrid[49][paddle2last + (i - 1)].bitmap = "Bitmaps/0.bmp"
-    end
-  end
   
   local xcoord = 2
   for p = 1, 2 do
@@ -303,10 +320,38 @@ function create_pong_window()
   
   end  
   
+  local secondslider = vb:column {
+  
+    vb:minislider {
+      id = "control_slider_two",
+      visible = false,
+      height = 199,
+      width = 18,
+      min = -64,
+      max = 64,
+      value = 0,
+      midi_mapping = "mom.MOMarmalade.Pong:P2 Control Slider",
+      tooltip = "This slider controls Player 2's paddle.\nTry mapping to a physical MIDI control!",
+      notifier = function(value)
+      
+        local newvalue = value + 64
+      
+        paddle2mode = 2
+        paddle2last = paddles[2]
+        midi_value_two = 51 - math.floor((newvalue*window_height)/128)  
+      
+      end
+    }  
+  }
+  
+  window_content:add_child(secondslider)
+  
   local newcolumn = vb:column {
+    vb:row {
+      margin = default_margin,
     vb:button {
       id = "start_stop",
-      width = "100%",
+      width = 76,
       text = "START",
       tooltip = "You can also use [SPACEBAR] to Start/Stop!",
       notifier = function(t)
@@ -318,54 +363,171 @@ function create_pong_window()
           vb.views.start_stop.text = "STOP"
         end    
       end
+    }
     },
-    vb:text {
-      text = "Paddle Size"
+    
+    vb:row {
+      margin = default_margin,
+      vb:bitmap{
+        id = "paddle_size_bitmap",
+        tooltip = "Paddle Size",
+        bitmap = "Bitmaps/paddlesize.bmp",
+        mode = "transparent"        
+      },
+      vb:popup {
+        tooltip = "Paddle Size",
+        width = popup_width,        
+        value = 5,      
+        items = {"1","3","5","7","9","11"},
+        notifier = function(value)
+          paddlesize = value + value-1
+          redraw_paddles()
+        end    
+      }
     },
-    vb:popup {
-      value = 5,
-      items = {"1","3","5","7","9","11"},
-      notifier = function(value)
-        paddlesize = value + value-1
-        redraw_paddles()
-      end    
-    },    
-    vb:text {
-      text = "Paddle Speed"
+    
+    vb:row {
+      margin = default_margin,
+      vb:bitmap {
+        id = "paddle_speed_bitmap",
+        tooltip = "Paddle Speed",
+        bitmap = "Bitmaps/paddlespeed.bmp",
+        mode = "transparent"
+      },
+      vb:popup {
+        tooltip = "Paddle Speed",
+        width = popup_width,
+        value = 1,
+        items = {"1","2","3","4","5"},
+        notifier = function(value)
+          movespeed = value
+        end    
+      }
     },
-    vb:popup {
-      value = 1,
-      items = {"1","2","3","4","5"},
-      notifier = function(value)
-        movespeed = value
-      end    
-    },    
-    vb:text {
-      text = "Ball Speed"
+      
+    vb:row {
+      margin = default_margin,
+      vb:bitmap {
+        id = "ball_speed_bitmap",
+        tooltip = "Ball Speed",
+        bitmap = "Bitmaps/ballspeed.bmp",
+        mode = "transparent"
+      },
+      vb:popup {
+        tooltip = "Ball Speed",
+        width = popup_width,
+        value = 3,
+        items = {"1","2","3","4","5","6"},
+        notifier = function(value)
+          maxspeed = value
+        end    
+      }
     },
-    vb:popup {
-      value = 3,
-      items = {"1","2","3","4","5","6"},
-      notifier = function(value)
-        maxspeed = value
-      end    
-    },    
-    vb:text {
-      text = "Ball Range"
-    },
-    vb:popup {
-      value = 2,
-      items = {"Center","Half","Full"},
-      notifier = function(value)
-        if value == 1 then
-          spawnrange = 1
-        elseif value == 2 then
-          spawnrange = 13
-        elseif value == 3 then
-          spawnrange = 24
-        end
-      end    
-    },    
+        
+    vb:row {
+      margin = default_margin,
+      vb:bitmap {
+        id = "ball_spawn_range_bitmap",
+        tooltip = "Ball Spawn Range",
+        bitmap = "Bitmaps/ballrange.bmp",
+        mode = "transparent"
+      },
+      vb:popup {
+        tooltip = "Ball Spawn Range",
+        width = popup_width,
+        value = 2,
+        items = {"Center","Half","Full"},
+        notifier = function(value)
+          if value == 1 then
+            spawnrange = 1
+          elseif value == 2 then
+            spawnrange = 13
+          elseif value == 3 then
+            spawnrange = 24
+          end
+        end    
+      }
+    }, 
+    
+    vb:row {
+      margin = default_margin,
+      vb:bitmap {
+        id = "color_palette_bitmap",
+        tooltip = "Color Palette",
+        bitmap = "Bitmaps/colorpalette.bmp",
+        mode = "transparent"
+      },
+      vb:popup {
+        tooltip = "Color Palette",
+        width = popup_width,
+        value = 1,
+        items = {"Classic","Main","Body","Button"},
+        notifier = function(value)
+          if value == 1 then
+            recolor_all("transparent")
+          elseif value == 2 then
+            recolor_all("main_color")
+          elseif value == 3 then
+            recolor_all("body_color")
+          elseif value == 4 then
+            recolor_all("button_color")
+          end
+        end    
+      }
+    }, 
+    
+    vb:row {
+      margin = default_margin,
+      vb:bitmap {
+        id = "two_player_bitmap",
+        tooltip = "2-Player Mode",
+        bitmap = "Bitmaps/2player.bmp",
+        mode = "transparent"
+      },
+      vb:checkbox {
+        tooltip = "2-Player Mode",
+        value = false,
+        notifier = function(value)
+          two_player_mode = value
+          paddle2last = paddles[2]
+          vb.views.control_slider_two.visible = true
+        end    
+      }
+    }, 
+    
+    vb:row {
+      margin = default_margin,
+      vb:bitmap {
+        id = "invert_midi1_bitmap",
+        tooltip = "Invert P1 MIDI Control",
+        bitmap = "Bitmaps/invert1.bmp",
+        mode = "transparent"
+      },
+      vb:checkbox {
+        tooltip = "Invert P1 MIDI Control",
+        value = false,
+        notifier = function(value)
+          invert_p1_midi = value
+        end    
+      }
+    }, 
+    
+    vb:row {
+      margin = default_margin,
+      vb:bitmap {
+        id = "invert_midi2_bitmap",
+        tooltip = "Invert P2 MIDI Control",
+        bitmap = "Bitmaps/invert2.bmp",
+        mode = "transparent"
+      },
+      vb:checkbox {
+        tooltip = "Invert P2 MIDI Control",
+        value = false,
+        notifier = function(value)
+          invert_p2_midi = value
+        end    
+      }
+    }, 
     
     vb:text {
       font = "big",
@@ -427,12 +589,39 @@ end
 local function midi_handler(message)
 
   if message:is_abs_value() then
-  
+    
+    
+    local newvalue = message.int_value
+    if invert_p1_midi then
+      newvalue = 127 - newvalue
+    end
+    
     paddle1mode = 2
     paddle1last = paddles[1]
-    midi_value = 51 - math.floor((message.int_value*window_height)/128)
+    midi_value = 51 - math.floor((newvalue*window_height)/128)
     if move_slider_with_midi then
-      vb.views.control_slider.value = message.int_value - 63
+      vb.views.control_slider.value = newvalue - 63
+    end
+  
+  end
+
+end
+
+--MIDI HANDLER TWO-----------------------------------------------------------------
+local function midi_handler_two(message)
+
+  if message:is_abs_value() then
+  
+    local newvalue = message.int_value
+    if invert_p2_midi then
+      newvalue = 127 - newvalue
+    end
+    
+    paddle2mode = 2
+    paddle2last = paddles[2]
+    midi_value_two = 51 - math.floor((newvalue*window_height)/128)
+    if move_slider_with_midi then
+      vb.views.control_slider_two.value = newvalue - 63
     end
   
   end
@@ -464,5 +653,12 @@ renoise.tool():add_midi_mapping{
   name = "mom.MOMarmalade.Pong:Control Slider",
   invoke = function(message)
     midi_handler(message)
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "mom.MOMarmalade.Pong:P2 Control Slider",
+  invoke = function(message)
+    midi_handler_two(message)
   end
 }
