@@ -6,6 +6,8 @@ if debug_mode then
   _AUTO_RELOAD_DEBUG = true
 end
 
+local move_slider_with_midi = false
+
 --GLOBALS-------------------------------------------------------------------------------------------- 
 local app = renoise.app() 
 local song = nil 
@@ -36,7 +38,10 @@ local spawnrange = 13
 
 local paddle1mode = 1
 local paddle1last = 1
+local paddle2last = 1
 local midi_value = 25
+
+local target = 0
 
 --REDRAW PADDLES------------------------------------------------
 local function redraw_paddles()
@@ -58,6 +63,14 @@ local function redraw_paddles()
       pixelgrid[49][i].bitmap = "Bitmaps/1.bmp"
     end
   end  
+
+end
+
+--CPU DECISION---------------------------------------------------
+local function cpu_decision()
+
+  
+  return math.random(-1, 1)
 
 end
 
@@ -106,25 +119,42 @@ local function timer_func()
   end
   
   --paddle2
-  if paddles[2] < ball[2] then --get direction
+  
+  paddle2last = paddles[2]
+  
+  if paddles[2] < ball[2] + target then --get direction
     paddles[4] = 1 
-  elseif paddles[2] > ball[2] then 
+  elseif paddles[2] > ball[2] + target then 
     paddles[4] = -1 
-  elseif paddles[2] == ball[2] then
+  elseif paddles[2] == ball[2] + target then
     paddles[4] = 0
   end
   
-  paddles[2] = paddles[2] + paddles[4]*movespeed  --apply direction to cpu paddle  
+  local distance_to_ball = math.abs(paddles[2] - ball[2])
+  
+  local how_far_to_move = math.min(movespeed, distance_to_ball + target)
+  
+  if debug_mode then
+    print("distance_to_ball: " .. distance_to_ball)
+    print("how_far_to_move: " .. how_far_to_move)
+  end
+  
+  paddles[2] = paddles[2] + paddles[4]*how_far_to_move  --apply direction to cpu paddle  
   
   if paddles[2] - (paddlesize + 1)/2 < 1 then paddles[2] = (paddlesize + 1)/2
   elseif paddles[2] + (paddlesize + 1)/2 > window_height then paddles[2] = window_height - (paddlesize - 1)/2
   end
+
   
-  if paddles[4] ~= 0 then
-    for i = 1, movespeed do
-      pixelgrid[49][paddles[2] - (paddlesize + 1 + (i-1)*2)/2 * paddles[4]].bitmap = "Bitmaps/0.bmp"
-    end
-  end
+--  if how_far_to_move ~= 0 then
+--    for i = 1, how_far_to_move do
+--      pixelgrid[49][paddles[2] - (paddlesize + 1 + (i-1)*2)/2 * paddles[4]].bitmap = "Bitmaps/0.bmp"
+      
+--      if debug_mode then
+--        print("paddle2 erase y: " .. (paddles[2] - (paddlesize + 1 + (i-1)*2)/2 * paddles[4]))
+--      end
+--    end
+--  end
   
   --ball
   pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp" 
@@ -150,6 +180,12 @@ local function timer_func()
       elseif direction[2] < -maxspeed then direction[2] = -maxspeed
       end
       
+      target = math.random(-1, 1) -- cpu decision making
+      
+      if debug_mode then
+        print("target: " .. target)
+      end
+      
     end
   elseif ball[1] == 48 then
     if ball[2] > paddles[2] - (paddlesize + 1)/2 and ball[2] < paddles[2] + (paddlesize + 1)/2 then
@@ -168,14 +204,14 @@ local function timer_func()
     end
   elseif ball[1] == 0 then
     scores[2] = scores[2] + 1
-    vb.views.scoretext.text = "SCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
+    vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
     ball[1] = window_width/2
     ball[2] = math.random(window_height/2 - spawnrange, window_height/2 + spawnrange)
     direction[1] = -direction[1]
     direction[2] = 0
   elseif ball[1] == 51 then
     scores[1] = scores[1] + 1
-    vb.views.scoretext.text = "SCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
+    vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
     ball[1] = window_width/2
     ball[2] = math.random(window_height/2 - spawnrange, window_height/2 + spawnrange)
     direction[1] = -direction[1]
@@ -189,6 +225,15 @@ local function timer_func()
   
   --drawing screen
   pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/1.bmp"
+  
+  --erasing paddle2
+  for i = 1, (paddlesize + 1)/2 do
+    if i == 1 then pixelgrid[49][paddle2last].bitmap = "Bitmaps/0.bmp"
+    else
+      pixelgrid[49][paddle2last - (i - 1)].bitmap = "Bitmaps/0.bmp"
+      pixelgrid[49][paddle2last + (i - 1)].bitmap = "Bitmaps/0.bmp"
+    end
+  end
   
   local xcoord = 2
   for p = 1, 2 do
@@ -212,6 +257,7 @@ function create_pong_window()
   window_content = vb:row {
   
     vb:minislider {
+    id = "control_slider",
     height = 199,
     width = 18,
     min = -64,
@@ -283,17 +329,7 @@ function create_pong_window()
         paddlesize = value + value-1
         redraw_paddles()
       end    
-    },
-    vb:text {
-      text = "Max Ball Speed"
-    },
-    vb:popup {
-      value = 3,
-      items = {"1","2","3","4","5","6"},
-      notifier = function(value)
-        maxspeed = value
-      end    
-    },
+    },    
     vb:text {
       text = "Paddle Speed"
     },
@@ -304,9 +340,18 @@ function create_pong_window()
         movespeed = value
       end    
     },    
-    
     vb:text {
-      text = "Spawn Range"
+      text = "Ball Speed"
+    },
+    vb:popup {
+      value = 3,
+      items = {"1","2","3","4","5","6"},
+      notifier = function(value)
+        maxspeed = value
+      end    
+    },    
+    vb:text {
+      text = "Ball Range"
     },
     vb:popup {
       value = 2,
@@ -324,8 +369,13 @@ function create_pong_window()
     
     vb:text {
       font = "big",
+      text = "SCORE"
+    },
+    
+      vb:text {
+      font = "big",
       id = "scoretext",
-      text = "SCORE\n" .. ("%i:%i"):format(scores[1],scores[2])
+      text = ("%i:%i"):format(scores[1],scores[2])
     }
     
   }
@@ -380,7 +430,10 @@ local function midi_handler(message)
   
     paddle1mode = 2
     paddle1last = paddles[1]
-    midi_value = 51 - math.floor((message.int_value*window_height)/128)   
+    midi_value = 51 - math.floor((message.int_value*window_height)/128)
+    if move_slider_with_midi then
+      vb.views.control_slider.value = message.int_value - 63
+    end
   
   end
 
