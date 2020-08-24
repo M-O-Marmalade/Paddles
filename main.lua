@@ -1,12 +1,12 @@
 --Pong - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = true 
+local debug_mode = false 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
 end
 
-local move_slider_with_midi = true
+local move_slider_with_midi = false
 
 --GLOBALS-------------------------------------------------------------------------------------------- 
 local app = renoise.app() 
@@ -96,6 +96,12 @@ end
 
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
+
+  --update ball position
+  pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp" 
+    
+  ball[1] = ball[1] + direction[1]
+  ball[2] = ball[2] + direction[2]
   
   --paddle1  
   paddles[1] = paddles[1] + paddles[3] * movespeed  --adding arrow key input to position
@@ -178,10 +184,6 @@ local function timer_func()
   end
     
   --ball
-  pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp" 
-    
-  ball[1] = ball[1] + direction[1]
-  ball[2] = ball[2] + direction[2]
   
   if ball[2] < 1 then ball[2] = 1
   elseif ball[2] > window_height then ball[2] = window_height
@@ -490,7 +492,8 @@ function create_pong_window()
         notifier = function(value)
           two_player_mode = value
           paddle2last = paddles[2]
-          vb.views.control_slider_two.visible = true
+          vb.views.control_slider_two.visible = value
+          pong_window_obj:resize()
         end    
       }
     }, 
