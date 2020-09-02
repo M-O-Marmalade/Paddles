@@ -21,6 +21,9 @@ local window_height = 50
 local window_width = 50
 local popup_width = 60
 local default_margin = 0
+local bitmapmodes = {"transparent", "main_color", "body_color", "button_color"}
+local colormode = 1
+local trailsmode = false
 
 local key_handler_options = { 
   send_key_repeat = false, 
@@ -58,8 +61,10 @@ local function redraw_paddles()
   for i = 1, window_height do    
     if i > paddles[1] + (paddlesize - 1)/2 or i < paddles[1] - (paddlesize - 1)/2 then
       pixelgrid[2][i].bitmap = "Bitmaps/0.bmp"
+      pixelgrid[2][i].mode = bitmapmodes[1]
     else
       pixelgrid[2][i].bitmap = "Bitmaps/1.bmp"
+      pixelgrid[2][i].mode = bitmapmodes[colormode]
     end
   end  
   
@@ -67,8 +72,10 @@ local function redraw_paddles()
   for i = 1, window_height do    
     if i > paddles[2] + (paddlesize - 1)/2 or i < paddles[2] - (paddlesize - 1)/2 then
       pixelgrid[49][i].bitmap = "Bitmaps/0.bmp"
+      pixelgrid[49][i].mode = bitmapmodes[1]
     else
       pixelgrid[49][i].bitmap = "Bitmaps/1.bmp"
+      pixelgrid[2][i].mode = bitmapmodes[colormode]
     end
   end  
 
@@ -79,7 +86,12 @@ local function recolor_all(color)
 
   for x = 1, window_width do
     for y = 1, window_height do
-      pixelgrid[x][y].mode = color
+      if pixelgrid[x][y].bitmap == "Bitmaps/0.bmp" then
+        pixelgrid[x][y].mode = bitmapmodes[1]
+      else
+        pixelgrid[x][y].mode = color
+      end
+      
     end
   end
   
@@ -91,15 +103,23 @@ local function recolor_all(color)
   vb.views.two_player_bitmap.mode = color
   vb.views.invert_midi1_bitmap.mode = color
   vb.views.invert_midi2_bitmap.mode = color
+  vb.views.trails_bitmap.mode = color
   
 end
 
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
 
-  --update ball position
-  pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp" 
+  
+  --erase previous position of ball
+  if trailsmode then
+    pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.5.bmp"
+  else
+    pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp"
+  end
+  pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[1] 
     
+  --update ball position
   ball[1] = ball[1] + direction[1]
   ball[2] = ball[2] + direction[2]
   
@@ -117,6 +137,7 @@ local function timer_func()
     if paddles[3] ~= 0 then    
       for i = 1, movespeed do
         pixelgrid[2][paddles[1] - (paddlesize + 1 + (i-1)*2)/2 * paddles[3]].bitmap = "Bitmaps/0.bmp"
+        pixelgrid[2][paddles[1] - (paddlesize + 1 + (i-1)*2)/2 * paddles[3]].mode = bitmapmodes[1]
       end
     end
     
@@ -132,9 +153,12 @@ local function timer_func()
     --clearing previous location of paddle1
     for i = 1, (paddlesize + 1)/2 do  
       if i == 1 then pixelgrid[2][paddle1last].bitmap = "Bitmaps/0.bmp"
+        pixelgrid[2][paddle1last].mode = bitmapmodes[1]
       else
         pixelgrid[2][paddle1last - (i - 1)].bitmap = "Bitmaps/0.bmp"
+        pixelgrid[2][paddle1last - (i - 1)].mode = bitmapmodes[1]
         pixelgrid[2][paddle1last + (i - 1)].bitmap = "Bitmaps/0.bmp"
+        pixelgrid[2][paddle1last + (i - 1)].mode = bitmapmodes[1]
       end
     end    
   
@@ -177,9 +201,12 @@ local function timer_func()
   --clearing previous location of paddle2
   for i = 1, (paddlesize + 1)/2 do
     if i == 1 then pixelgrid[49][paddle2last].bitmap = "Bitmaps/0.bmp"
+      pixelgrid[49][paddle2last].mode = bitmapmodes[1]
     else
       pixelgrid[49][paddle2last - (i - 1)].bitmap = "Bitmaps/0.bmp"
+      pixelgrid[49][paddle2last - (i - 1)].mode = bitmapmodes[1]
       pixelgrid[49][paddle2last + (i - 1)].bitmap = "Bitmaps/0.bmp"
+      pixelgrid[49][paddle2last + (i - 1)].mode = bitmapmodes[1]
     end
   end
     
@@ -253,14 +280,18 @@ local function timer_func()
   
   --drawing screen
   pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/1.bmp"
+  pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[colormode]
   
   local xcoord = 2
   for p = 1, 2 do
     for i = 1, (paddlesize + 1)/2 do  
       if i == 1 then pixelgrid[xcoord][paddles[p]].bitmap = "Bitmaps/1.bmp"
+        pixelgrid[xcoord][paddles[p]].mode = bitmapmodes[colormode]
       else
         pixelgrid[xcoord][paddles[p] - (i - 1)].bitmap = "Bitmaps/1.bmp"
+        pixelgrid[xcoord][paddles[p] - (i - 1)].mode = bitmapmodes[colormode]
         pixelgrid[xcoord][paddles[p] + (i - 1)].bitmap = "Bitmaps/1.bmp"
+        pixelgrid[xcoord][paddles[p] + (i - 1)].mode = bitmapmodes[colormode]
       end
     end
     xcoord = 49
@@ -374,7 +405,7 @@ function create_pong_window()
         id = "paddle_size_bitmap",
         tooltip = "Paddle Size",
         bitmap = "Bitmaps/paddlesize.bmp",
-        mode = "transparent"        
+        mode = bitmapmodes[1]        
       },
       vb:popup {
         tooltip = "Paddle Size",
@@ -394,7 +425,7 @@ function create_pong_window()
         id = "paddle_speed_bitmap",
         tooltip = "Paddle Speed",
         bitmap = "Bitmaps/paddlespeed.bmp",
-        mode = "transparent"
+        mode = bitmapmodes[1]
       },
       vb:popup {
         tooltip = "Paddle Speed",
@@ -413,7 +444,7 @@ function create_pong_window()
         id = "ball_speed_bitmap",
         tooltip = "Ball Speed",
         bitmap = "Bitmaps/ballspeed.bmp",
-        mode = "transparent"
+        mode = bitmapmodes[1]
       },
       vb:popup {
         tooltip = "Ball Speed",
@@ -432,7 +463,7 @@ function create_pong_window()
         id = "ball_spawn_range_bitmap",
         tooltip = "Ball Spawn Range",
         bitmap = "Bitmaps/ballrange.bmp",
-        mode = "transparent"
+        mode = bitmapmodes[1]
       },
       vb:popup {
         tooltip = "Ball Spawn Range",
@@ -457,7 +488,7 @@ function create_pong_window()
         id = "color_palette_bitmap",
         tooltip = "Color Palette",
         bitmap = "Bitmaps/colorpalette.bmp",
-        mode = "transparent"
+        mode = bitmapmodes[1]
       },
       vb:popup {
         tooltip = "Color Palette",
@@ -465,18 +496,37 @@ function create_pong_window()
         value = 1,
         items = {"Classic","Main","Body","Button"},
         notifier = function(value)
-          if value == 1 then
-            recolor_all("transparent")
-          elseif value == 2 then
-            recolor_all("main_color")
-          elseif value == 3 then
-            recolor_all("body_color")
-          elseif value == 4 then
-            recolor_all("button_color")
+          recolor_all(bitmapmodes[value])
+          colormode = value
+        end    
+      }
+    },     
+        
+    vb:row {
+      margin = default_margin,
+      vb:bitmap {
+        id = "trails_bitmap",
+        tooltip = "Trails Mode",
+        bitmap = "Bitmaps/trailsmode.bmp",
+        mode = bitmapmodes[1]
+      },
+      vb:checkbox {
+        tooltip = "Trails Mode",
+        value = false,
+        notifier = function(value)
+          trailsmode = value
+          if value == false then          
+            for x = 1, window_width do
+              for y = 1, window_height do
+                if pixelgrid[x][y].bitmap == "Bitmaps/0.5.bmp" then
+                  pixelgrid[x][y].bitmap = "Bitmaps/0.bmp"
+                end      
+              end
+            end         
           end
         end    
       }
-    }, 
+    },
     
     vb:row {
       margin = default_margin,
@@ -484,7 +534,7 @@ function create_pong_window()
         id = "two_player_bitmap",
         tooltip = "2-Player Mode",
         bitmap = "Bitmaps/2player.bmp",
-        mode = "transparent"
+        mode = bitmapmodes[1]
       },
       vb:checkbox {
         tooltip = "2-Player Mode",
@@ -504,7 +554,7 @@ function create_pong_window()
         id = "invert_midi1_bitmap",
         tooltip = "Invert P1 MIDI Control",
         bitmap = "Bitmaps/invert1.bmp",
-        mode = "transparent"
+        mode = bitmapmodes[1]
       },
       vb:checkbox {
         tooltip = "Invert P1 MIDI Control",
@@ -512,16 +562,12 @@ function create_pong_window()
         notifier = function(value)
           invert_p1_midi = value
         end    
-      }
-    }, 
-    
-    vb:row {
-      margin = default_margin,
+      },
       vb:bitmap {
         id = "invert_midi2_bitmap",
         tooltip = "Invert P2 MIDI Control",
         bitmap = "Bitmaps/invert2.bmp",
-        mode = "transparent"
+        mode = bitmapmodes[1]
       },
       vb:checkbox {
         tooltip = "Invert P2 MIDI Control",
