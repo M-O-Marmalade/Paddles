@@ -542,8 +542,7 @@ function create_pong_window()
         notifier = function(value)
           two_player_mode = value
           paddle2last = paddles[2]
-          vb.views.control_slider_two.visible = value
-          pong_window_obj:resize()
+          vb.views.control_slider_two.visible = true
         end    
       }
     }, 
@@ -578,17 +577,30 @@ function create_pong_window()
       }
     }, 
     
-    vb:text {
-      font = "big",
-      text = "SCORE"
+    vb:row {  
+      vb:text {
+        font = "big",
+        text = "SCORE"
+      }
     },
     
+    vb:horizontal_aligner { 
+      mode = "justify",       
       vb:text {
-      font = "big",
-      id = "scoretext",
-      text = ("%i:%i"):format(scores[1],scores[2])
+        font = "big",
+        id = "scoretext",
+        text = ("%i:%i"):format(scores[1],scores[2])
+      },
+      
+      vb:button {
+        bitmap = "Bitmaps/question.bmp",
+        tooltip = "Help",
+        notifier = function()
+          app:open_url("https://xephyrpanda.wixsite.com/citrus64/pong")
+        end
+      }
     }
-    
+           
   }
   
   window_content:add_child(newcolumn)
