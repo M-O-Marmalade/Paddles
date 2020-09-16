@@ -24,11 +24,21 @@ local default_margin = 0
 local bitmapmodes = {"transparent", "main_color", "body_color", "button_color"}
 local colormode = 1
 local trailsmode = false
+local trailcoords = {}
+local traillength = 1
+local maxtraillength = 77
+
+for i = 1, traillength do
+  trailcoords[i] = {25,25}
+end
 
 local key_handler_options = { 
   send_key_repeat = false, 
   send_key_release = true 
 } 
+
+
+local msperframe = 40
 
 local ball = {25,25}
 local paddles = {25,25,0,0}
@@ -37,7 +47,6 @@ local direction = {1,0}
 local movespeed = 1
 local scores = {0,0}
 local pixelgrid = {}
-local msperframe = 40
 local maxspeed = 3
 local spawnrange = 13
 
@@ -109,15 +118,30 @@ end
 
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
-
   
-  --erase previous position of ball
   if trailsmode then
-    pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.5.bmp"
-  else
+
+    pixelgrid[trailcoords[traillength][1]][trailcoords[traillength][2]].bitmap = "Bitmaps/0.bmp"
+    pixelgrid[trailcoords[traillength][1]][trailcoords[traillength][2]].mode = bitmapmodes[1]
+  
+    --pass coordinates down the trail
+    for i = 2, traillength do
+      trailcoords[traillength - (i-2)][1] = trailcoords[traillength - (i-1)][1]
+      trailcoords[traillength - (i-2)][2] = trailcoords[traillength - (i-1)][2]
+    end
+    trailcoords[1][1] = ball[1]
+    trailcoords[1][2] = ball[2]
+    
+    for i = 1, traillength do
+      pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((i-1)%(24))
+      pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = "plain"
+    end
+    
+  else  
+    --erase previous position of ball
     pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp"
+    pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[1] 
   end
-  pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[1] 
     
   --update ball position
   ball[1] = ball[1] + direction[1]
@@ -220,6 +244,11 @@ local function timer_func()
     if ball[2] > paddles[1] - (paddlesize + 1)/2 and ball[2] < paddles[1] + (paddlesize + 1)/2 then
       direction[1] = -direction[1]
       
+      if trailsmode and traillength ~= maxtraillength then
+        traillength = traillength + 1
+        trailcoords[traillength] = {25,25}        
+      end
+      
       if ball[2] > paddles[1] then
         direction[2] = direction[2] + 1
       elseif ball[2] < paddles[1] then
@@ -243,6 +272,11 @@ local function timer_func()
   elseif ball[1] == 48 then
     if ball[2] > paddles[2] - (paddlesize + 1)/2 and ball[2] < paddles[2] + (paddlesize + 1)/2 then
       direction[1] = -direction[1]
+      
+      if trailsmode and traillength ~= maxtraillength then
+        traillength = traillength + 1
+        trailcoords[traillength] = {25,25}  
+      end
       
       if ball[2] > paddles[2] then
         direction[2] = direction[2] + 1
@@ -518,11 +552,17 @@ function create_pong_window()
           if value == false then          
             for x = 1, window_width do
               for y = 1, window_height do
-                if pixelgrid[x][y].bitmap == "Bitmaps/0.5.bmp" then
+                if pixelgrid[x][y].bitmap ~= "Bitmaps/1.bmp" then
                   pixelgrid[x][y].bitmap = "Bitmaps/0.bmp"
                 end      
               end
             end         
+          else
+            for i = 1, traillength do
+              --reset trail coordinates to the ball position
+              trailcoords[i][1] = ball[1]
+              trailcoords[i][2] = ball[2]
+            end
           end
         end    
       }
