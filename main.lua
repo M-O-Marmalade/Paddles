@@ -1,6 +1,6 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = false 
+local debug_mode = true 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -62,6 +62,45 @@ local midi_value_two = 25
 local invert_p2_midi = false
 
 local target = 0
+
+local soundsetupsuccess = false
+
+--SOUND SETUP-----------------------------------------------------
+local function sound_setup()
+
+  song = renoise.song()
+  
+  song.transport:stop()
+  
+  song.sequencer:insert_new_pattern_at(1)
+  
+  song:insert_track_at(1)
+  
+  song.tracks[1]:solo()
+  
+  local firstpattern = song.sequencer:pattern(1)
+  
+  local firstline = song.patterns[firstpattern].tracks[1]:line(1):note_column(1)
+  
+  song:insert_instrument_at(1)
+  
+  song.selected_instrument_index = 1
+  
+  app:load_instrument("Instruments/+ PADDLES1 +.xrni")
+  
+  firstline.note_value = 48
+  firstline.instrument_value = 0
+  
+  soundsetupsuccess = true
+
+end
+
+--SOUND DESTROY-----------------------------------------------------
+local function sound_destroy()
+
+  soundsetupsuccess = false
+
+end
 
 --REDRAW PADDLES------------------------------------------------
 local function redraw_paddles()
@@ -244,6 +283,10 @@ local function timer_func()
     if ball[2] > paddles[1] - (paddlesize + 1)/2 and ball[2] < paddles[1] + (paddlesize + 1)/2 then
       direction[1] = -direction[1]
       
+      if soundsetupsuccess then
+        song.transport:trigger_sequence(1)
+      end
+      
       if trailsmode and traillength ~= maxtraillength then
         traillength = traillength + 1
         trailcoords[traillength] = {25,25}        
@@ -272,6 +315,10 @@ local function timer_func()
   elseif ball[1] == 48 then
     if ball[2] > paddles[2] - (paddlesize + 1)/2 and ball[2] < paddles[2] + (paddlesize + 1)/2 then
       direction[1] = -direction[1]
+      
+      if soundsetupsuccess then
+        song.transport:trigger_sequence(1)
+      end
       
       if trailsmode and traillength ~= maxtraillength then
         traillength = traillength + 1
@@ -329,7 +376,8 @@ local function timer_func()
       end
     end
     xcoord = 49
-  end
+  end  
+  
 end
 
 --CREATE PADDLES WINDOW----------------------------------------------------------------------------- 
@@ -565,7 +613,23 @@ function create_paddles_window()
             end
           end
         end    
+      },
+      
+      vb:bitmap {
+        bitmap = "Bitmaps/trailsmode.bmp",
+        mode = bitmapmodes[1]
+      },
+      vb:checkbox {
+        value = false,
+        notifier = function(value)
+          if value then
+            sound_setup()
+          else
+            sound_destroy()
+          end
+        end
       }
+      
     },
     
     vb:row {
@@ -639,6 +703,13 @@ function create_paddles_window()
           app:open_url("https://xephyrpanda.wixsite.com/citrus64/paddles")
         end
       }
+    },
+    
+    vb:button {
+      text = "sound_setup",
+      notifier = function()
+        sound_setup()
+      end
     }
            
   }
