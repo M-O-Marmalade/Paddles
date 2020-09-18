@@ -23,7 +23,7 @@ local popup_width = 60
 local default_margin = 0
 local bitmapmodes = {"transparent", "main_color", "body_color", "button_color"}
 local colormode = 1
-local trailsmode = false
+local trailsmode = true
 local trailcoords = {}
 local traillength = 1
 local maxtraillength = 77
@@ -546,7 +546,7 @@ function create_paddles_window()
       },
       vb:checkbox {
         tooltip = "Trails Mode",
-        value = false,
+        value = true,
         notifier = function(value)
           trailsmode = value
           if value == false then          
