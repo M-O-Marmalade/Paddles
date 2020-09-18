@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RenoiseScriptingTool doc_version="0">
-  <Name>Pong</Name>
-  <Id>mom.MOMarmalade.Pong</Id>
-  <Version>2.4</Version>
+  <Name>Paddles</Name>
+  <Id>mom.MOMarmalade.Paddles</Id>
+  <Version>2.5</Version>
   <ApiVersion>6</ApiVersion>
   <Author>MOMarmalade [xephyrpanda@yahoo.com]</Author>
   <AutoUpgraded>false</AutoUpgraded>
-  <Category>Game, Pong, Snake, Nibbles, Fun, Distraction</Category>
-  <Description>It's Pong.</Description>
+  <Category>Game, Paddles, Snake, Nibbles, Fun, Distraction</Category>
+  <Description>A game with paddles and a ball.</Description>
   <Homepage>https://xephyrpanda.wixsite.com/citrus64</Homepage>
   <Platform/>
   <Icon/>

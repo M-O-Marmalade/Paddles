@@ -1,4 +1,4 @@
---Pong - main.lua--
+--Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
 local debug_mode = false 
 
@@ -16,7 +16,7 @@ local tool = renoise.tool()
 local vb = renoise.ViewBuilder()
 local window_title = nil
 local window_content = nil
-local pong_window_obj = nil
+local paddles_window_obj = nil
 local window_height = 50
 local window_width = 50
 local popup_width = 60
@@ -332,10 +332,10 @@ local function timer_func()
   end
 end
 
---CREATE PONG WINDOW----------------------------------------------------------------------------- 
-function create_pong_window()
+--CREATE PADDLES WINDOW----------------------------------------------------------------------------- 
+function create_paddles_window()
 
-  window_title = "PONG"
+  window_title = "PADDLES"
 
   -- create the main content column, but don't add any views yet:
   window_content = vb:row {
@@ -347,7 +347,7 @@ function create_pong_window()
     min = -64,
     max = 64,
     value = 0,
-    midi_mapping = "mom.MOMarmalade.Pong:Control Slider",
+    midi_mapping = "mom.MOMarmalade.Paddles:Control Slider",
     tooltip = "This slider controls the paddle.\nTry mapping to a physical MIDI control!",
     notifier = function(value)
       
@@ -397,7 +397,7 @@ function create_pong_window()
       min = -64,
       max = 64,
       value = 0,
-      midi_mapping = "mom.MOMarmalade.Pong:P2 Control Slider",
+      midi_mapping = "mom.MOMarmalade.Paddles:P2 Control Slider",
       tooltip = "This slider controls Player 2's paddle.\nTry mapping to a physical MIDI control!",
       notifier = function(value)
       
@@ -636,7 +636,7 @@ function create_pong_window()
         bitmap = "Bitmaps/question.bmp",
         tooltip = "Help",
         notifier = function()
-          app:open_url("https://xephyrpanda.wixsite.com/citrus64/pong")
+          app:open_url("https://xephyrpanda.wixsite.com/citrus64/paddles")
         end
       }
     }
@@ -729,36 +729,36 @@ local function midi_handler_two(message)
 
 end
 
---SHOW PONG WINDOW--------------------------------------------------------------------------------
-local function show_pong_window()
-  if not pong_window_obj or not pong_window_obj.visible then
-    pong_window_obj = app:show_custom_dialog(window_title, window_content, key_handler, key_handler_options)
-  else pong_window_obj:show()
+--SHOW PADDLES WINDOW--------------------------------------------------------------------------------
+local function show_paddles_window()
+  if not paddles_window_obj or not paddles_window_obj.visible then
+    paddles_window_obj = app:show_custom_dialog(window_title, window_content, key_handler, key_handler_options)
+  else paddles_window_obj:show()
   end
 end
 
 --MAIN FUNCTION-------------------------------------------------------------------------------------- 
 local function main_function()
-  if not pong_window_obj then create_pong_window() end
-  show_pong_window()
+  if not paddles_window_obj then create_paddles_window() end
+  show_paddles_window()
 end
 
 --MENU/HOTKEY/MIDI ENTRIES-------------------------------------------------------------------------------- 
 
 tool:add_menu_entry { 
-  name = "Main Menu:Tools:Pong...", 
+  name = "Main Menu:Tools:Paddles...", 
   invoke = function() main_function() end 
 }
 
 renoise.tool():add_midi_mapping{
-  name = "mom.MOMarmalade.Pong:Control Slider",
+  name = "mom.MOMarmalade.Paddles:Control Slider",
   invoke = function(message)
     midi_handler(message)
   end
 }
 
 renoise.tool():add_midi_mapping{
-  name = "mom.MOMarmalade.Pong:P2 Control Slider",
+  name = "mom.MOMarmalade.Paddles:P2 Control Slider",
   invoke = function(message)
     midi_handler_two(message)
   end

@@ -1,8 +1,8 @@
-# PONG
-![Pong-small](https://raw.githubusercontent.com/M-O-Marmalade/Pix/master/pong-small.png)
+# PADDLES
+![Paddles-small](https://raw.githubusercontent.com/M-O-Marmalade/Pix/master/paddles-small.png)
 
-A Pong game to be played in Renoise as an xrnx tool
+A game to be played in Renoise as an xrnx tool
 
-OFFICIAL PAGE - https://xephyrpanda.wixsite.com/citrus64/pong
+OFFICIAL PAGE - https://xephyrpanda.wixsite.com/citrus64/paddles
 
-![PongPlay](https://raw.githubusercontent.com/M-O-Marmalade/Pix/master/pong.gif)
+![PaddlesPlay](https://raw.githubusercontent.com/M-O-Marmalade/Pix/master/paddlesplay.gif)
