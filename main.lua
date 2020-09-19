@@ -10,7 +10,7 @@ local move_slider_with_midi = false
 
 --GLOBALS-------------------------------------------------------------------------------------------- 
 local app = renoise.app() 
-local song = nil 
+local song = renoise.song()
 local tool = renoise.tool()
 
 local vb = renoise.ViewBuilder()
@@ -64,11 +64,11 @@ local invert_p2_midi = false
 local target = 0
 
 local soundsetupsuccess = false
+local soundmode = false
+local gameplaying = false
 
 --SOUND SETUP-----------------------------------------------------
 local function sound_setup()
-
-  song = renoise.song()
   
   song.transport:stop()
   
@@ -471,11 +471,19 @@ function create_paddles_window()
       tooltip = "You can also use [SPACEBAR] to Start/Stop!",
       notifier = function(t)
         if vb.views.start_stop.text == "STOP" then
+          gameplaying = false          
           tool:remove_timer(timer_func)
-          vb.views.start_stop.text = "START"
-        elseif vb.views.start_stop.text == "START" then        
+          vb.views.start_stop.text = "START"          
+          if soundmode and soundsetupsuccess then
+            sound_destroy()
+          end          
+        elseif vb.views.start_stop.text == "START" then 
+          gameplaying = true         
           tool:add_timer(timer_func, msperframe)
-          vb.views.start_stop.text = "STOP"
+          vb.views.start_stop.text = "STOP"          
+          if soundmode and not soundsetupsuccess then
+            sound_setup()
+          end          
         end    
       end
     }
@@ -622,10 +630,14 @@ function create_paddles_window()
       vb:checkbox {
         value = false,
         notifier = function(value)
-          if value then
-            sound_setup()
-          else
-            sound_destroy()
+          if gameplaying then
+            if value then
+              sound_setup()
+              soundmode = true
+            else
+              sound_destroy()
+              soundmode = false
+            end
           end
         end
       }
@@ -737,14 +749,22 @@ local function key_handler(dialog, key)
   
     end
     
-    if key.name == "space" then
+    if key.name == "space" then    
     
       if vb.views.start_stop.text == "STOP" then
+        gameplaying = false
         tool:remove_timer(timer_func)
-        vb.views.start_stop.text = "START"
-      elseif vb.views.start_stop.text == "START" then        
+        vb.views.start_stop.text = "START"        
+        if soundmode and soundsetupsuccess then
+          sound_destroy()
+        end        
+      elseif vb.views.start_stop.text == "START" then 
+        gameplaying = true       
         tool:add_timer(timer_func, msperframe)
-        vb.views.start_stop.text = "STOP"
+        vb.views.start_stop.text = "STOP"        
+        if soundmode and not soundsetupsuccess then
+          sound_setup()
+        end        
       end   
     
     end
