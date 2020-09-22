@@ -663,10 +663,12 @@ function create_paddles_window()
       },
       
       vb:bitmap {
-        bitmap = "Bitmaps/trailsmode.bmp",
+        tooltip = "Sound Mode",
+        bitmap = "Bitmaps/sound.bmp",
         mode = bitmapmodes[1]
       },
       vb:checkbox {
+        tooltip = "Sound Mode",
         value = false,
         notifier = function(value)
           soundmode = value
