@@ -1,6 +1,6 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = true 
+local debug_mode = false 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -10,7 +10,7 @@ local move_slider_with_midi = false
 
 --GLOBALS-------------------------------------------------------------------------------------------- 
 local app = renoise.app() 
-local song = renoise.song()
+local song = nil
 local tool = renoise.tool()
 
 local vb = renoise.ViewBuilder()
@@ -67,29 +67,54 @@ local soundsetupsuccess = false
 local soundmode = false
 local gameplaying = false
 
+local selected_sequence = 0
+local selected_line = 0
+local selected_track = 0
+local selected_instrument = 0
+local pattern_follow = false
+local single_track = false
+local bpm = 0
+local newbpm = 60
+
 --SOUND SETUP-----------------------------------------------------
 local function sound_setup()
+
+  song = renoise.song()
+  
+  selected_sequence = song.selected_sequence_index
+  selected_line = song.selected_line_index
+  selected_track = song.selected_track_index
+  selected_instrument = song.selected_instrument_index
+  pattern_follow = song.transport.follow_player
+  single_track = song.transport.single_track_edit_mode
+  bpm = song.transport.bpm
   
   song.transport:stop()
-  
+    
   song.sequencer:insert_new_pattern_at(1)
   
   song:insert_track_at(1)
   
-  song.tracks[1]:solo()
+  song.tracks[1]:solo()  
   
-  local firstpattern = song.sequencer:pattern(1)
-  
-  local firstline = song.patterns[firstpattern].tracks[1]:line(1):note_column(1)
-  
+  song.selected_line_index = 1
+
   song:insert_instrument_at(1)
   
   song.selected_instrument_index = 1
   
   app:load_instrument("Instruments/+ PADDLES1 +.xrni")
   
+  local firstpattern = song.sequencer:pattern(1)
+  
+  local firstline = song.patterns[firstpattern].tracks[1]:line(1):note_column(1)  
+  
   firstline.note_value = 48
   firstline.instrument_value = 0
+  
+  song.transport.follow_player = false
+  song.transport.single_track_edit_mode = true
+  song.transport.bpm = newbpm
   
   soundsetupsuccess = true
 
@@ -97,6 +122,20 @@ end
 
 --SOUND DESTROY-----------------------------------------------------
 local function sound_destroy()
+
+  song.transport:stop()
+  
+  song:delete_instrument_at(1)
+  song:delete_track_at(1)
+  song.sequencer:delete_sequence_at(1)
+  
+  song.selected_sequence_index = selected_sequence
+  song.selected_line_index = selected_line
+  song.selected_track_index = selected_track
+  song.selected_instrument_index = selected_instrument
+  song.transport.follow_player = pattern_follow
+  song.transport.single_track_edit_mode = single_track
+  song.transport.bpm = bpm
 
   soundsetupsuccess = false
 
@@ -630,13 +669,12 @@ function create_paddles_window()
       vb:checkbox {
         value = false,
         notifier = function(value)
+          soundmode = value
           if gameplaying then
             if value then
               sound_setup()
-              soundmode = true
             else
               sound_destroy()
-              soundmode = false
             end
           end
         end
@@ -715,15 +753,8 @@ function create_paddles_window()
           app:open_url("https://xephyrpanda.wixsite.com/citrus64/paddles")
         end
       }
-    },
-    
-    vb:button {
-      text = "sound_setup",
-      notifier = function()
-        sound_setup()
-      end
     }
-           
+               
   }
   
   window_content:add_child(newcolumn)
