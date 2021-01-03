@@ -64,8 +64,11 @@ local invert_p2_midi = false
 local target = 0
 
 local soundsetupsuccess = false
-local soundmode = false
+local soundmode = true
 local gameplaying = false
+
+local firstpattern
+local firstline
 
 local selected_sequence = 0
 local selected_line = 0
@@ -105,9 +108,9 @@ local function sound_setup()
   
   app:load_instrument("Instruments/+ PADDLES1 +.xrni")
   
-  local firstpattern = song.sequencer:pattern(1)
+  firstpattern = song.sequencer:pattern(1)
   
-  local firstline = song.patterns[firstpattern].tracks[1]:line(1):note_column(1)  
+  firstline = song.patterns[firstpattern].tracks[1]:line(1):note_column(1)  
   
   firstline.note_value = 48
   firstline.instrument_value = 0
@@ -139,6 +142,95 @@ local function sound_destroy()
 
   soundsetupsuccess = false
 
+end
+
+--SOUND UP----------------------------------------------
+local function sound_up()
+
+  if soundsetupsuccess then
+
+    song.instruments[1].sample_modulation_sets[1].devices[2].to.value = 0.64
+
+  end
+end
+
+--SOUND DOWN----------------------------------------------
+local function sound_down()
+
+  if soundsetupsuccess then
+
+    song.instruments[1].sample_modulation_sets[1].devices[2].to.value = 0.36
+
+  end
+end
+
+--SOUND MIDDLE----------------------------------------------
+local function sound_middle()
+
+  if soundsetupsuccess then 
+
+    song.instruments[1].sample_modulation_sets[1].devices[2].to.value = 0.5
+
+  end
+end
+
+--SOUND LEFT------------------------------------------------
+local function sound_left()
+
+  if soundsetupsuccess then
+
+    song.instruments[1].samples[1].panning = 0.2
+
+  end
+end
+
+--SOUND RIGHT------------------------------------------------
+local function sound_right()
+
+  if soundsetupsuccess then
+
+    song.instruments[1].samples[1].panning = 0.8
+
+  end
+end
+
+--SOUND WALL------------------------------------------------
+local function sound_wall()
+
+  if soundsetupsuccess then
+  
+    firstline.note_value = 53
+    song.transport:trigger_sequence(1)
+  
+  end
+end
+
+--SOUND SCORE P1---------------------------------------------
+local function sound_score_p1()
+
+  if soundsetupsuccess then
+    sound_middle()
+    sound_right()
+    song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.64
+    song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.3   
+    firstline.note_value = 50
+    song.transport:trigger_sequence(1)
+  
+  end
+end
+
+--SOUND SCORE P2---------------------------------------------
+local function sound_score_p2()
+
+  if soundsetupsuccess then
+    sound_middle()
+    sound_left()
+    song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.3
+    song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.64
+    firstline.note_value = 52
+    song.transport:trigger_sequence(1)
+  
+  end
 end
 
 --REDRAW PADDLES------------------------------------------------
@@ -320,9 +412,13 @@ local function timer_func()
   
   if ball[1] == 3 then
     if ball[2] > paddles[1] - (paddlesize + 1)/2 and ball[2] < paddles[1] + (paddlesize + 1)/2 then
-      direction[1] = -direction[1]
+      direction[1] = -direction[1]      
       
       if soundsetupsuccess then
+        song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.3
+        song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.3
+        firstline.note_value = 48      
+        sound_left()
         song.transport:trigger_sequence(1)
       end
       
@@ -332,15 +428,27 @@ local function timer_func()
       end
       
       if ball[2] > paddles[1] then
+        if direction[2] >= 0 then sound_up()
+        else sound_down()
+        end
         direction[2] = direction[2] + 1
       elseif ball[2] < paddles[1] then
+        if direction[2] <= 0 then sound_up()
+        else sound_down()
+        end
         direction[2] = direction[2] - 1
       elseif paddlesize == 1 then
         direction[2] = direction[2] + math.random(-1,1)
+      else
+        sound_middle()
       end
       
-      if direction[2] > maxspeed then direction[2] = maxspeed
-      elseif direction[2] < -maxspeed then direction[2] = -maxspeed
+      if direction[2] > maxspeed then 
+        direction[2] = maxspeed
+        sound_middle()
+      elseif direction[2] < -maxspeed then 
+        direction[2] = -maxspeed
+        sound_middle()
       end
             
       target = math.random(-1, 1) -- cpu decision making
@@ -353,9 +461,13 @@ local function timer_func()
     end
   elseif ball[1] == 48 then
     if ball[2] > paddles[2] - (paddlesize + 1)/2 and ball[2] < paddles[2] + (paddlesize + 1)/2 then
-      direction[1] = -direction[1]
+      direction[1] = -direction[1]      
       
       if soundsetupsuccess then
+        song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.3
+        song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.3
+        firstline.note_value = 48
+        sound_right()
         song.transport:trigger_sequence(1)
       end
       
@@ -365,19 +477,32 @@ local function timer_func()
       end
       
       if ball[2] > paddles[2] then
+        if direction[2] >= 0 then sound_up()
+        else sound_down()
+        end
         direction[2] = direction[2] + 1
       elseif ball[2] < paddles[2] then
-        direction[2] = direction[2] - 1   
+        if direction[2] <= 0 then sound_up()
+        else sound_down()
+        end
+        direction[2] = direction[2] - 1
       elseif paddlesize == 1 then
         direction[2] = direction[2] + math.random(-1,1)  
+      else
+        sound_middle()
       end
       
-      if direction[2] > maxspeed then direction[2] = maxspeed
-      elseif direction[2] < -maxspeed then direction[2] = -maxspeed
+      if direction[2] > maxspeed then 
+        direction[2] = maxspeed
+        sound_middle()
+      elseif direction[2] < -maxspeed then 
+        direction[2] = -maxspeed
+        sound_middle()
       end
       
     end
   elseif ball[1] == 0 then
+    sound_score_p2()
     scores[2] = scores[2] + 1
     vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
     ball[1] = window_width/2
@@ -385,6 +510,7 @@ local function timer_func()
     direction[1] = -direction[1]
     direction[2] = 0
   elseif ball[1] == 51 then
+    sound_score_p1()
     scores[1] = scores[1] + 1
     vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
     ball[1] = window_width/2
@@ -394,6 +520,7 @@ local function timer_func()
   end
   
   if ball[2] == 50 or ball[2] == 1 then
+    sound_wall()
     direction[2] = -direction[2]
   end
   
@@ -669,7 +796,7 @@ function create_paddles_window()
       },
       vb:checkbox {
         tooltip = "Sound Mode",
-        value = false,
+        value = true,
         notifier = function(value)
           soundmode = value
           if gameplaying then
