@@ -66,6 +66,11 @@ local target = 0
 local soundsetupsuccess = false
 local soundmode = true
 local gameplaying = false
+local currenttranspose = -8
+local transposemax = 18
+local transposemin = -35
+local readytotranspose = false
+local transposeupordown = 0
 
 local firstpattern
 local firstline
@@ -107,6 +112,8 @@ local function sound_setup()
   song.selected_instrument_index = 1
   
   app:load_instrument("Instruments/+ PADDLES1 +.xrni")
+  
+  song.instruments[1].transpose = currenttranspose
   
   firstpattern = song.sequencer:pattern(1)
   
@@ -230,6 +237,35 @@ local function sound_score_p2()
     firstline.note_value = 52
     song.transport:trigger_sequence(1)
   
+  end
+end
+
+--SOUND PITCH UP-----------------------------------------------
+local function sound_pitch_up()
+
+  if soundsetupsuccess then
+  
+    if currenttranspose < transposemax then
+      
+      currenttranspose = currenttranspose + 1
+      song.instruments[1].transpose = currenttranspose
+      
+    
+    end      
+  end
+end
+
+--SOUND PITCH DOWN-----------------------------------------------
+local function sound_pitch_down()
+
+  if soundsetupsuccess then
+  
+    if currenttranspose > transposemin then
+      
+      currenttranspose = currenttranspose - 1
+      song.instruments[1].transpose = currenttranspose
+      
+    end      
   end
 end
 
@@ -415,6 +451,13 @@ local function timer_func()
       direction[1] = -direction[1]      
       
       if soundsetupsuccess then
+        if readytotranspose then
+          if transposeupordown > 0 then sound_pitch_up()
+          elseif transposeupordown < 0 then sound_pitch_down()
+          end
+          readytotranspose = false
+        end
+      
         song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.3
         song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.3
         firstline.note_value = 48      
@@ -464,6 +507,13 @@ local function timer_func()
       direction[1] = -direction[1]      
       
       if soundsetupsuccess then
+        if readytotranspose then
+          if transposeupordown > 0 then sound_pitch_up()
+          elseif transposeupordown < 0 then sound_pitch_down()
+          end
+          readytotranspose = false
+        end
+      
         song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.3
         song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.3
         firstline.note_value = 48
@@ -502,6 +552,8 @@ local function timer_func()
       
     end
   elseif ball[1] == 0 then
+    readytotranspose = true
+    transposeupordown = -1
     sound_score_p2()
     scores[2] = scores[2] + 1
     vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
@@ -510,6 +562,8 @@ local function timer_func()
     direction[1] = -direction[1]
     direction[2] = 0
   elseif ball[1] == 51 then
+    readytotranspose = true
+    transposeupordown = 1
     sound_score_p1()
     scores[1] = scores[1] + 1
     vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
