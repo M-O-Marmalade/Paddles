@@ -1,6 +1,6 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = true 
+local debug_mode = false 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -26,9 +26,11 @@ local colormode = 1
 local trailsmode = true
 local trailcoords = {}
 local traillength = 1
-local maxtraillength = 77
+local maxtraillength = 99
+local hasmaxtraillengthbeenchanged = false
+local previousmaxtraillength = 99
 
-for i = 1, traillength do
+for i = 1, maxtraillength do
   trailcoords[i] = {25,25}
 end
 
@@ -327,6 +329,7 @@ local function recolor_all(color)
   vb.views.invert_midi2_bitmap.mode = color
   vb.views.trails_bitmap.mode = color
   vb.views.sound_bitmap.mode = color
+  vb.views.game_speed_bitmap.mode = color
   
 end
 
@@ -346,22 +349,35 @@ local function timer_func()
     
   end
   
-  if trailsmode then
-
-    pixelgrid[trailcoords[traillength][1]][trailcoords[traillength][2]].bitmap = "Bitmaps/0.bmp"
-    pixelgrid[trailcoords[traillength][1]][trailcoords[traillength][2]].mode = bitmapmodes[1]
+  if trailsmode then    
+    
+    --set back of trail from previous frame to black
+    local backoftrail = math.floor(math.min(traillength, previousmaxtraillength))
+    
+    pixelgrid[trailcoords[backoftrail][1]][trailcoords[backoftrail][2]].bitmap = "Bitmaps/0.bmp"
+    pixelgrid[trailcoords[backoftrail][1]][trailcoords[backoftrail][2]].mode = bitmapmodes[1]
   
-    --pass coordinates down the trail
+    --pass coordinates up the trail
     for i = 2, traillength do
       trailcoords[traillength - (i-2)][1] = trailcoords[traillength - (i-1)][1]
       trailcoords[traillength - (i-2)][2] = trailcoords[traillength - (i-1)][2]
     end
+    
     trailcoords[1][1] = ball[1]
     trailcoords[1][2] = ball[2]
     
+    --set bitmaps of trail coordinates to proper colors    
     for i = 1, traillength do
-      pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((i-1)%(24))
-      pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = "plain"
+      if i <= previousmaxtraillength then
+        if i < maxtraillength then          
+          pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((i-1)%(24))
+          pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = "plain"
+        else          
+          pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = "Bitmaps/0.bmp"
+          pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = bitmapmodes[1]
+        end
+      end
+      
     end
     
   else  
@@ -486,7 +502,7 @@ local function timer_func()
         song.transport:trigger_sequence(1)
       end
       
-      if trailsmode and traillength ~= maxtraillength then
+      if trailsmode and traillength < 99 then
         traillength = traillength + 1
         trailcoords[traillength] = {25,25}        
       end
@@ -542,7 +558,7 @@ local function timer_func()
         song.transport:trigger_sequence(1)
       end
       
-      if trailsmode and traillength ~= maxtraillength then
+      if trailsmode and traillength ~= 99 then
         traillength = traillength + 1
         trailcoords[traillength] = {25,25}  
       end
@@ -618,6 +634,11 @@ local function timer_func()
     end
     xcoord = 49
   end  
+  
+  if hasmaxtraillengthbeenchanged then
+    previousmaxtraillength = maxtraillength
+    hasmaxtraillengthbeenchanged = false
+  end
   
 end
 
@@ -728,21 +749,22 @@ function create_paddles_window()
   window_content:add_child(secondslider)
   
   local newcolumn = vb:column {
+    
     vb:row {
       margin = default_margin,
-    vb:button {
-      id = "start_stop",
-      width = 76,
-      text = "START",
-      tooltip = "You can also use [SPACEBAR] to Start/Stop!",
-      notifier = function(t)
-        if vb.views.start_stop.text == "STOP" then
-          stop_game()        
-        elseif vb.views.start_stop.text == "START" then 
-          start_game()
-        end    
-      end
-    }
+      vb:button {
+        id = "start_stop",
+        width = 76,
+        text = "START",
+        tooltip = "You can also use [SPACEBAR] to Start/Stop!",
+        notifier = function(t)
+          if vb.views.start_stop.text == "STOP" then
+            stop_game()        
+          elseif vb.views.start_stop.text == "START" then 
+            start_game()
+          end    
+        end
+      }
     },
     
     vb:row {
@@ -880,6 +902,55 @@ function create_paddles_window()
       },
       
       vb:bitmap {
+        id = "trail_length_bitmap",
+        tooltip = "Max Trail Length",
+        bitmap = "Bitmaps/traillength.bmp",
+        mode = bitmapmodes[1]
+      },
+      vb:rotary { 
+        id = "trail_length_rotary", 
+        tooltip = "Max Trail Length", 
+        min = 2, 
+        max = 99, 
+        value = 77, 
+        width = 18, 
+        height = 18, 
+        notifier = function(value)        
+          maxtraillength = value
+          hasmaxtraillengthbeenchanged = true
+        end 
+      }
+    },
+    
+    vb:row {
+      margin = default_margin,
+      
+      vb:bitmap {
+        id = "game_speed_bitmap",
+        tooltip = "Game Speed",
+        bitmap = "Bitmaps/clock.bmp",
+        mode = bitmapmodes[1]
+      },
+      vb:rotary { 
+        id = "game_speed_rotary", 
+        tooltip = "Game Speed", 
+        min = 0, 
+        max = 25, 
+        value = 0, 
+        width = 18, 
+        height = 18, 
+        notifier = function(value)
+          msperframe = 40 - value
+          if gameplaying then
+            if tool:has_timer(timer_func) then
+              tool:remove_timer(timer_func)
+            end
+            tool:add_timer(timer_func, msperframe)
+          end
+        end 
+      },
+      
+      vb:bitmap {
         id = "sound_bitmap",
         tooltip = "Sound Mode",
         bitmap = "Bitmaps/sound.bmp",
@@ -899,7 +970,6 @@ function create_paddles_window()
           end
         end
       }
-      
     },
     
     vb:row {
@@ -952,7 +1022,7 @@ function create_paddles_window()
     }, 
     
     vb:row {      
-      height = 20
+      height = 2     
     },
     
     vb:horizontal_aligner { 
