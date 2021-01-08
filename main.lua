@@ -30,6 +30,9 @@ local maxtraillength = 99
 local hasmaxtraillengthbeenchanged = false
 local previousmaxtraillength = 99
 
+local paintmode = false
+local paintnumber = 1
+
 for i = 1, maxtraillength do
   trailcoords[i] = {25,25}
 end
@@ -349,14 +352,21 @@ local function timer_func()
     
   end
   
-  if trailsmode then    
-    
-    --set back of trail from previous frame to black
+  if paintmode then
+  
+    --paint back of trail based on current paint color
+    pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((paintnumber-1)%(24))
+    pixelgrid[ball[1]][ball[2]].mode = "plain"
+  
+  elseif trailsmode then
+  
+    --find back of trail from previous frame
     local backoftrail = math.floor(math.min(traillength, previousmaxtraillength))
-    
+  
+    --set back of trail to black
     pixelgrid[trailcoords[backoftrail][1]][trailcoords[backoftrail][2]].bitmap = "Bitmaps/0.bmp"
     pixelgrid[trailcoords[backoftrail][1]][trailcoords[backoftrail][2]].mode = bitmapmodes[1]
-  
+    
     --pass coordinates up the trail
     for i = 2, traillength do
       trailcoords[traillength - (i-2)][1] = trailcoords[traillength - (i-1)][1]
@@ -589,6 +599,7 @@ local function timer_func()
       
     end
   elseif ball[1] == 0 then
+    if paintmode then paintnumber = (paintnumber + 1)%24 end
     readytotranspose = true
     transposeupordown = -1
     sound_score_p2()
@@ -599,6 +610,7 @@ local function timer_func()
     direction[1] = -direction[1]
     direction[2] = 0
   elseif ball[1] == 51 then
+    if paintmode then paintnumber = (paintnumber + 1)%24 end
     readytotranspose = true
     transposeupordown = 1
     sound_score_p1()
@@ -879,10 +891,14 @@ function create_paddles_window()
         mode = bitmapmodes[1]
       },
       vb:checkbox {
+        id = "trails_mode_checkbox",
         tooltip = "Trails Mode",
         value = true,
-        notifier = function(value)
+        notifier = function(value)          
+          paintmode = false
+          vb.views.paint_mode_checkbox.value = false
           trailsmode = value
+          vb.views.trails_mode_checkbox.value = value
           if value == false then          
             for x = 1, window_width do
               for y = 1, window_height do
@@ -923,31 +939,24 @@ function create_paddles_window()
     },
     
     vb:row {
-      margin = default_margin,
+      margin = default_margin,      
       
       vb:bitmap {
-        id = "game_speed_bitmap",
-        tooltip = "Game Speed",
-        bitmap = "Bitmaps/clock.bmp",
+        id = "paint_mode_bitmap",
+        tooltip = "Paint Mode [WARNING: Messy!]",
+        bitmap = "Bitmaps/paintmode.bmp",
         mode = bitmapmodes[1]
       },
-      vb:rotary { 
-        id = "game_speed_rotary", 
-        tooltip = "Game Speed", 
-        min = 0, 
-        max = 25, 
-        value = 0, 
-        width = 18, 
-        height = 18, 
-        notifier = function(value)
-          msperframe = 40 - value
-          if gameplaying then
-            if tool:has_timer(timer_func) then
-              tool:remove_timer(timer_func)
-            end
-            tool:add_timer(timer_func, msperframe)
-          end
-        end 
+      vb:checkbox {
+        id = "paint_mode_checkbox",
+        tooltip = "Paint Mode [WARNING: Messy!]",
+        value = false,
+        notifier = function(value)          
+          trailsmode = false
+          vb.views.trails_mode_checkbox.value = false
+          paintmode = value
+          vb.views.paint_mode_checkbox.value = value
+        end    
       },
       
       vb:bitmap {
@@ -988,6 +997,31 @@ function create_paddles_window()
           paddle2last = paddles[2]
           vb.views.control_slider_two.visible = true
         end    
+      },
+      
+      vb:bitmap {
+        id = "game_speed_bitmap",
+        tooltip = "Game Speed",
+        bitmap = "Bitmaps/clock.bmp",
+        mode = bitmapmodes[1]
+      },
+      vb:rotary { 
+        id = "game_speed_rotary", 
+        tooltip = "Game Speed", 
+        min = 0, 
+        max = 25, 
+        value = 0, 
+        width = 18, 
+        height = 18, 
+        notifier = function(value)
+          msperframe = 40 - value
+          if gameplaying then
+            if tool:has_timer(timer_func) then
+              tool:remove_timer(timer_func)
+            end
+            tool:add_timer(timer_func, msperframe)
+          end
+        end 
       }
     }, 
     
@@ -1019,13 +1053,10 @@ function create_paddles_window()
           invert_p2_midi = value
         end    
       }
-    }, 
-    
-    vb:row {      
-      height = 2     
-    },
+    },     
     
     vb:horizontal_aligner { 
+      margin = 1,
       mode = "justify", 
       
       vb:bitmap {
