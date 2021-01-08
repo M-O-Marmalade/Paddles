@@ -1,6 +1,6 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = false 
+local debug_mode = true 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -939,13 +939,23 @@ function create_paddles_window()
     }, 
     
     vb:row {      
-      height = 21
+      height = 20
     },
     
     vb:horizontal_aligner { 
-      mode = "justify",       
+      mode = "justify", 
+      
+      vb:bitmap {
+        id = "score_bitmap",
+        tooltip = "Score",
+        bitmap = "Bitmaps/score.bmp",
+        mode = bitmapmodes[1]
+      },
+            
       vb:text {
+        width = 50,
         font = "big",
+        tooltip = "Score",
         id = "scoretext",
         text = ("%i:%i"):format(scores[1],scores[2])
       },
