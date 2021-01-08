@@ -332,6 +332,19 @@ end
 
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
+
+  if not paddles_window_obj.visible then
+  
+    if gameplaying then
+      gameplaying = false          
+      tool:remove_timer(timer_func)
+      vb.views.start_stop.text = "START"          
+      if soundmode and soundsetupsuccess then
+        sound_destroy()
+      end
+    end 
+    
+  end
   
   if trailsmode then
 
@@ -949,11 +962,11 @@ function create_paddles_window()
         id = "score_bitmap",
         tooltip = "Score",
         bitmap = "Bitmaps/score.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[3]
       },
             
       vb:text {
-        width = 50,
+        width = 36,
         font = "big",
         tooltip = "Score",
         id = "scoretext",
