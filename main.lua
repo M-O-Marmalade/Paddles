@@ -1,6 +1,6 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = false 
+local debug_mode = true 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -432,10 +432,18 @@ local function timer_func()
       if i == 1 then pixelgrid[2][paddle1last].bitmap = "Bitmaps/0.bmp"
         pixelgrid[2][paddle1last].mode = bitmapmodes[1]
       else
-        pixelgrid[2][paddle1last - (i - 1)].bitmap = "Bitmaps/0.bmp"
-        pixelgrid[2][paddle1last - (i - 1)].mode = bitmapmodes[1]
-        pixelgrid[2][paddle1last + (i - 1)].bitmap = "Bitmaps/0.bmp"
-        pixelgrid[2][paddle1last + (i - 1)].mode = bitmapmodes[1]
+        
+        local paddle1lastlo = paddle1last - (i - 1)
+        local paddle1lasthi = paddle1last + (i - 1)
+      
+        if (paddle1lastlo) > 0 then
+          pixelgrid[2][paddle1lastlo].bitmap = "Bitmaps/0.bmp"
+          pixelgrid[2][paddle1lastlo].mode = bitmapmodes[1]
+        end
+        if (paddle1lasthi) < 51 then        
+          pixelgrid[2][paddle1lasthi].bitmap = "Bitmaps/0.bmp"
+          pixelgrid[2][paddle1lasthi].mode = bitmapmodes[1]
+        end
       end
     end    
   
@@ -480,10 +488,18 @@ local function timer_func()
     if i == 1 then pixelgrid[49][paddle2last].bitmap = "Bitmaps/0.bmp"
       pixelgrid[49][paddle2last].mode = bitmapmodes[1]
     else
-      pixelgrid[49][paddle2last - (i - 1)].bitmap = "Bitmaps/0.bmp"
-      pixelgrid[49][paddle2last - (i - 1)].mode = bitmapmodes[1]
-      pixelgrid[49][paddle2last + (i - 1)].bitmap = "Bitmaps/0.bmp"
-      pixelgrid[49][paddle2last + (i - 1)].mode = bitmapmodes[1]
+    
+      local paddle2lastlo = paddle2last - (i - 1)
+      local paddle2lasthi = paddle2last + (i - 1)
+    
+      if (paddle2lastlo) > 0 then
+        pixelgrid[49][paddle2lastlo].bitmap = "Bitmaps/0.bmp"
+        pixelgrid[49][paddle2lastlo].mode = bitmapmodes[1]
+      end
+      if (paddle2lasthi) < 51 then
+        pixelgrid[49][paddle2lasthi].bitmap = "Bitmaps/0.bmp"
+        pixelgrid[49][paddle2lasthi].mode = bitmapmodes[1]
+      end
     end
   end
     
