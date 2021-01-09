@@ -407,7 +407,8 @@ local function timer_func()
           if colormode == 1 then
             pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((i-1)%(24))
           else
-            pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = "Bitmaps/0.5.bmp"
+            pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = "Bitmaps/0.75.bmp"
+            pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = bitmapmodes[colormode]
           end
         else          
           pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = "Bitmaps/0.bmp"
