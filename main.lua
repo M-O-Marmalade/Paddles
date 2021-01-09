@@ -1,10 +1,16 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = true 
+local debug_mode = false 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
 end
+
+local debugclocks = {
+  frametotalclock = 0,
+  recolortotalclock = 0,
+  trailsclearclock = 0
+}
 
 local move_slider_with_midi = false
 
@@ -26,14 +32,14 @@ local colormode = 1
 local trailsmode = true
 local trailcoords = {}
 local traillength = 1
-local maxtraillength = 99
+local maxtraillength = 50
 local hasmaxtraillengthbeenchanged = false
-local previousmaxtraillength = 99
+local previousmaxtraillength = 50
 
 local paintmode = false
 local paintnumber = 1
 
-for i = 1, maxtraillength do
+for i = 1, 99 do
   trailcoords[i] = {25,25}
 end
 
@@ -311,6 +317,10 @@ end
 --RECOLOR ALL---------------------------------------------------
 local function recolor_all(color)
 
+  if debug_mode then
+    debugclocks.recolortotalclock = os.clock()
+  end
+
   for x = 1, window_width do
     for y = 1, window_height do
       if pixelgrid[x][y].bitmap == "Bitmaps/0.bmp" then
@@ -333,11 +343,22 @@ local function recolor_all(color)
   vb.views.trails_bitmap.mode = color
   vb.views.sound_bitmap.mode = color
   vb.views.game_speed_bitmap.mode = color
+  vb.views.trail_length_bitmap.mode = color
+  vb.views.paint_mode_bitmap.mode = color
+  
+  if debug_mode then
+    debugclocks.recolortotalclock = os.clock() - debugclocks.recolortotalclock
+    print("RecolorTotalClock = " .. debugclocks.recolortotalclock)
+  end
   
 end
 
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
+
+  if debug_mode then
+    debugclocks.frametotalclock = os.clock()
+  end
 
   if not paddles_window_obj.visible then
   
@@ -353,10 +374,13 @@ local function timer_func()
   end
   
   if paintmode then
-  
-    --paint back of trail based on current paint color
-    pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((paintnumber-1)%(24))
-    pixelgrid[ball[1]][ball[2]].mode = "plain"
+    
+    if colormode == 1 then
+      --paint back of trail based on current paint color
+      pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/pastelrainbow/%i.bmp"):format((paintnumber-1)%(24))      
+    else
+      pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.75.bmp"
+    end
   
   elseif trailsmode then
   
@@ -380,8 +404,11 @@ local function timer_func()
     for i = 1, traillength do
       if i <= previousmaxtraillength then
         if i < maxtraillength then          
-          pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((i-1)%(24))
-          pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = "plain"
+          if colormode == 1 then
+            pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((i-1)%(24))
+          else
+            pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = "Bitmaps/0.5.bmp"
+          end
         else          
           pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = "Bitmaps/0.bmp"
           pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = bitmapmodes[1]
@@ -389,8 +416,7 @@ local function timer_func()
       end
       
     end
-    
-  else  
+  else
     --erase previous position of ball
     pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp"
     pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[1] 
@@ -645,13 +671,19 @@ local function timer_func()
   
   
   --drawing screen
-  pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/1.bmp"
-  pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[colormode]
+  if paintmode and colormode == 1 then
+    pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((paintnumber-10)%(24)) 
+    --pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[1]
+  else
+    pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/1.bmp"
+    pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[colormode]
+  end
   
   local xcoord = 2
   for p = 1, 2 do
     for i = 1, (paddlesize + 1)/2 do  
-      if i == 1 then pixelgrid[xcoord][paddles[p]].bitmap = "Bitmaps/1.bmp"
+      if i == 1 then 
+        pixelgrid[xcoord][paddles[p]].bitmap = "Bitmaps/1.bmp"
         pixelgrid[xcoord][paddles[p]].mode = bitmapmodes[colormode]
       else
         pixelgrid[xcoord][paddles[p] - (i - 1)].bitmap = "Bitmaps/1.bmp"
@@ -666,6 +698,11 @@ local function timer_func()
   if hasmaxtraillengthbeenchanged then
     previousmaxtraillength = maxtraillength
     hasmaxtraillengthbeenchanged = false
+  end
+  
+  if debug_mode then
+    debugclocks.frametotalclock = os.clock() - debugclocks.frametotalclock 
+    print("FrameTotalClock: ", debugclocks.frametotalclock)
   end
   
 end
@@ -915,14 +952,26 @@ function create_paddles_window()
           vb.views.paint_mode_checkbox.value = false
           trailsmode = value
           vb.views.trails_mode_checkbox.value = value
-          if value == false then          
+          if value == false then
+          
+            if debug_mode then
+              debugclocks.trailsclearclock = os.clock()
+            end
+       
             for x = 1, window_width do
               for y = 1, window_height do
                 if pixelgrid[x][y].bitmap ~= "Bitmaps/1.bmp" then
                   pixelgrid[x][y].bitmap = "Bitmaps/0.bmp"
+                  pixelgrid[x][y].mode = bitmapmodes[1]
                 end      
               end
-            end         
+            end 
+            
+            if debug_mode then
+              debugclocks.trailsclearclock = os.clock() - debugclocks.trailsclearclock
+              print("TrailsClearClock = " .. debugclocks.trailsclearclock)
+            end
+                    
           else
             for i = 1, traillength do
               --reset trail coordinates to the ball position
@@ -942,13 +991,13 @@ function create_paddles_window()
       vb:rotary { 
         id = "trail_length_rotary", 
         tooltip = "Max Trail Length", 
-        min = 2, 
-        max = 99, 
-        value = 77, 
+        min = -48, 
+        max = 48, 
+        value = 0, 
         width = 18, 
         height = 18, 
         notifier = function(value)        
-          maxtraillength = value
+          maxtraillength = 50 + value
           hasmaxtraillengthbeenchanged = true
         end 
       }
@@ -1024,7 +1073,7 @@ function create_paddles_window()
       vb:rotary { 
         id = "game_speed_rotary", 
         tooltip = "Game Speed", 
-        min = 0, 
+        min = -25, 
         max = 25, 
         value = 0, 
         width = 18, 

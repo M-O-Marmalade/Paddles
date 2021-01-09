@@ -5,6 +5,7 @@
   <Version>2.82</Version>
   <ApiVersion>6.1</ApiVersion>
   <Author>MOMarmalade [xephyrpanda@yahoo.com]</Author>
+  <AutoUpgraded>false</AutoUpgraded>
   <Category>Game, Paddles, Snake, Nibbles, Fun, Distraction</Category>
   <Description>A game with paddles and a ball.</Description>
   <Homepage>https://xephyrpanda.wixsite.com/citrus64</Homepage>
