@@ -121,7 +121,7 @@ local function sound_setup()
   
   song:insert_track_at(1)
   
-  song.tracks[1]:solo()  
+  song:track(1):solo()  
   
   song.selected_line_index = 1
 
@@ -131,11 +131,11 @@ local function sound_setup()
   
   app:load_instrument("Instruments/+ PADDLES1 +.xrni")
   
-  song.instruments[1].transpose = currenttranspose
+  song:instrument(1).transpose = currenttranspose
   
   firstpattern = song.sequencer:pattern(1)
   
-  firstline = song.patterns[firstpattern].tracks[1]:line(1):note_column(1)  
+  firstline = song:pattern(firstpattern):track(1):line(1):note_column(1)  
   
   firstline.note_value = 48
   firstline.instrument_value = 0
@@ -174,7 +174,7 @@ local function sound_up()
 
   if soundsetupsuccess then
 
-    song.instruments[1].sample_modulation_sets[1].devices[2].to.value = 0.64
+    song:instrument(1):sample_modulation_set(1):device(2).to.value = 0.64
 
   end
 end
@@ -184,7 +184,7 @@ local function sound_down()
 
   if soundsetupsuccess then
 
-    song.instruments[1].sample_modulation_sets[1].devices[2].to.value = 0.36
+    song:instrument(1):sample_modulation_set(1):device(2).to.value = 0.36
 
   end
 end
@@ -194,7 +194,7 @@ local function sound_middle()
 
   if soundsetupsuccess then 
 
-    song.instruments[1].sample_modulation_sets[1].devices[2].to.value = 0.5
+    song:instrument(1):sample_modulation_set(1):device(2).to.value = 0.5
 
   end
 end
@@ -204,7 +204,7 @@ local function sound_left()
 
   if soundsetupsuccess then
 
-    song.instruments[1].samples[1].panning = 0.2
+    song:instrument(1):sample(1).panning = 0.2
 
   end
 end
@@ -214,7 +214,7 @@ local function sound_right()
 
   if soundsetupsuccess then
 
-    song.instruments[1].samples[1].panning = 0.8
+    song:instrument(1):sample(1).panning = 0.8
 
   end
 end
@@ -236,8 +236,8 @@ local function sound_score_p1()
   if soundsetupsuccess then
     sound_middle()
     sound_right()
-    song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.64
-    song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.3   
+    song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = 0.64
+    song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = 0.3   
     firstline.note_value = 50
     song.transport:trigger_sequence(1)
   
@@ -250,8 +250,8 @@ local function sound_score_p2()
   if soundsetupsuccess then
     sound_middle()
     sound_left()
-    song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.3
-    song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.64
+    song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = 0.3
+    song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = 0.64
     firstline.note_value = 52
     song.transport:trigger_sequence(1)
   
@@ -266,7 +266,7 @@ local function sound_pitch_up()
     if currenttranspose < transposemax then
       
       currenttranspose = currenttranspose + 1
-      song.instruments[1].transpose = currenttranspose
+      song:instrument(1).transpose = currenttranspose
       
     
     end      
@@ -281,7 +281,7 @@ local function sound_pitch_down()
     if currenttranspose > transposemin then
       
       currenttranspose = currenttranspose - 1
-      song.instruments[1].transpose = currenttranspose
+      song:instrument(1).transpose = currenttranspose
       
     end      
   end
@@ -548,8 +548,8 @@ local function timer_func()
           readytotranspose = false
         end
       
-        song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.3
-        song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.3
+        song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = 0.3
+        song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = 0.3
         firstline.note_value = 48      
         sound_left()
         song.transport:trigger_sequence(1)
@@ -604,8 +604,8 @@ local function timer_func()
           readytotranspose = false
         end
       
-        song.instruments[1].sample_device_chains[1]:device(2).parameters[3].value = 0.3
-        song.instruments[1].sample_device_chains[1]:device(2).parameters[4].value = 0.3
+        song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = 0.3
+        song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = 0.3
         firstline.note_value = 48
         sound_right()
         song.transport:trigger_sequence(1)
