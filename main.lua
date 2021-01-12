@@ -37,7 +37,11 @@ local hasmaxtraillengthbeenchanged = false
 local previousmaxtraillength = 50
 
 local paintmode = false
-local paintnumber = 1
+local paintnumbers = {
+  paintnumber = 0,
+  paintnumoffset = 14,
+  paintnumrange = 6
+}
 
 for i = 1, 99 do
   trailcoords[i] = {25,25}
@@ -377,7 +381,7 @@ local function timer_func()
     
     if colormode == 1 then
       --paint back of trail based on current paint color
-      pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/pastelrainbow/%i.bmp"):format((paintnumber-1)%(24))      
+      pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format(paintnumbers.paintnumber + paintnumbers.paintnumoffset)      
     else
       pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.75.bmp"
     end
@@ -642,7 +646,7 @@ local function timer_func()
       
     end
   elseif ball[1] == 0 then
-    if paintmode then paintnumber = (paintnumber + 1)%24 end
+    if paintmode then paintnumbers.paintnumber = ((paintnumbers.paintnumber + 1)%paintnumbers.paintnumrange) end
     readytotranspose = true
     transposeupordown = -1
     sound_score_p2()
@@ -653,7 +657,7 @@ local function timer_func()
     direction[1] = -direction[1]
     direction[2] = 0
   elseif ball[1] == 51 then
-    if paintmode then paintnumber = (paintnumber + 1)%24 end
+    if paintmode then paintnumbers.paintnumber = ((paintnumbers.paintnumber + 1)%paintnumbers.paintnumrange) end
     readytotranspose = true
     transposeupordown = 1
     sound_score_p1()
@@ -665,20 +669,24 @@ local function timer_func()
     direction[2] = 0
   end
   
+  if debug_mode then
+    print("paintnumber: " .. paintnumbers.paintnumber)
+  end
+  
   if ball[2] == 50 or ball[2] == 1 then
     sound_wall()
     direction[2] = -direction[2]
   end
   
   
-  --drawing screen
-  if paintmode and colormode == 1 then
-    pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((paintnumber-10)%(24)) 
+  --drawing screen  
+  --if paintmode and colormode == 1 then
+    --pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format(paintnumber-15) 
     --pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[1]
-  else
+  --else  
     pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/1.bmp"
     pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[colormode]
-  end
+  --end
   
   local xcoord = 2
   for p = 1, 2 do
@@ -953,12 +961,8 @@ function create_paddles_window()
           vb.views.paint_mode_checkbox.value = false
           trailsmode = value
           vb.views.trails_mode_checkbox.value = value
-          if value == false then
-          
-            if debug_mode then
-              debugclocks.trailsclearclock = os.clock()
-            end
-       
+          if value == false then 
+            --clear the screen      
             for x = 1, window_width do
               for y = 1, window_height do
                 if pixelgrid[x][y].bitmap ~= "Bitmaps/1.bmp" then
@@ -966,13 +970,7 @@ function create_paddles_window()
                   pixelgrid[x][y].mode = bitmapmodes[1]
                 end      
               end
-            end 
-            
-            if debug_mode then
-              debugclocks.trailsclearclock = os.clock() - debugclocks.trailsclearclock
-              print("TrailsClearClock = " .. debugclocks.trailsclearclock)
-            end
-                    
+            end                    
           else
             for i = 1, traillength do
               --reset trail coordinates to the ball position
@@ -1009,19 +1007,31 @@ function create_paddles_window()
       
       vb:bitmap {
         id = "paint_mode_bitmap",
-        tooltip = "Paint Mode [WARNING: Messy!]",
+        tooltip = "Paint Mode",
         bitmap = "Bitmaps/paintmode.bmp",
         mode = bitmapmodes[1]
       },
       vb:checkbox {
         id = "paint_mode_checkbox",
-        tooltip = "Paint Mode [WARNING: Messy!]",
+        tooltip = "Paint Mode",
         value = false,
         notifier = function(value)          
           trailsmode = false
           vb.views.trails_mode_checkbox.value = false
           paintmode = value
           vb.views.paint_mode_checkbox.value = value
+          
+          if not value then
+            --clear the screen
+            for x = 1, window_width do
+              for y = 1, window_height do
+                if pixelgrid[x][y].bitmap ~= "Bitmaps/1.bmp" then
+                  pixelgrid[x][y].bitmap = "Bitmaps/0.bmp"
+                  pixelgrid[x][y].mode = bitmapmodes[1]
+                end      
+              end
+            end          
+          end
         end    
       },
       
