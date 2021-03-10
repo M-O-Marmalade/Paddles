@@ -23,8 +23,59 @@ local vb = renoise.ViewBuilder()
 local window_title = nil
 local window_content = nil
 local paddles_window_obj = nil
-local window_height = 50
-local window_width = 50
+
+local display = {
+  display = {},
+  buffer1 = {},
+  buffer2 = {},
+  buffer3 = {},
+  buffer4 = {},
+  hitstrength = 5,
+  movestrength = -0.15,
+  damping = 0.975,
+  threshold = 0.1,
+  multiplier = 10,
+  dimming = 2.5,
+  offset = 0,
+  offsetrate = 0.09,
+  scale = 4,
+  margin = -3,
+  height = 50,
+  width = 50
+}
+
+local colors = {
+  [0] = {1,1,1},  --black
+  [1] = {255,255,255},  --white
+  [75] = {192,192,192}, --75% grey
+  rainbow = {
+    [0] = {255,0,0},  --pure red
+    [1] = {255,64,0},
+    [2] = {255,128,0},
+    [3] = {255,192,0},
+    [4] = {255,255,0},  --yellow
+    [5] = {192,255,0},
+    [6] = {128,255,0},
+    [7] = {64,255,0},
+    [8] = {0,255,0},  --pure green
+    [9] = {0,255,64},
+    [10] = {0,255,128},
+    [11] = {0,255,192},
+    [12] = {0,255,255}, --cyan
+    [13] = {0,192,255},
+    [14] = {0,128,255},
+    [15] = {0,64,255},
+    [16] = {0,0,255}, --pure blue
+    [17] = {64,0,255},
+    [18] = {128,0,255},
+    [19] = {192,0,255},
+    [20] = {255,0,255}, --magenta
+    [21] = {255,0,192},
+    [22] = {255,0,128},
+    [23] = {255,0,64}
+  }
+}
+
 local popup_width = 60
 local default_margin = 0
 local bitmapmodes = {"transparent", "main_color", "body_color", "button_color"}
@@ -61,7 +112,6 @@ local paddlesize = 9
 local direction = {1,0}
 local movespeed = 1
 local scores = {0,0}
-local pixelgrid = {}
 local maxspeed = 3
 local spawnrange = 13
 
@@ -104,6 +154,58 @@ local function get_new_song()
 
   song = renoise.song()
 
+end
+
+--INIT BUFFERS----------------------------
+local function init_buffers()
+
+  for x = 1, display.width do
+    if not display.buffer1[x] then display.buffer1[x] = {} end
+    if not display.buffer2[x] then display.buffer2[x] = {} end
+    for y = 1, display.height do
+      display.buffer1[x][y] = {0,0,0}
+      display.buffer2[x][y] = {0,0,0}
+    end
+  end
+  
+  for x = 0, display.width+1 do
+    if not display.buffer3[x] then display.buffer3[x] = {} end
+    if not display.buffer4[x] then display.buffer4[x] = {} end
+    for y = 0, display.height+1 do
+      display.buffer3[x][y] = 0
+      display.buffer4[x][y] = 0
+    end
+  end  
+    
+end
+
+--PUSH BUFFER-------------------------------------------
+local function push_buffer()
+
+  for x,v in ipairs(display.buffer1) do
+    for y,b in ipairs(v) do
+      
+      if b[1] ~= display.buffer2[x][y][1] or
+      b[2] ~= display.buffer2[x][y][2] or
+      b[3] ~= display.buffer2[x][y][3] then
+      
+        display.display[x][y].color = {b[1], b[2], b[3]}  
+              
+      end
+      
+    end
+  end
+
+end
+
+--SAME COLOR-------------------------------------------
+local function same_color(color1, color2)
+
+  if color1[1] ~= color2[1] then return false end
+  if color1[2] ~= color2[2] then return false end
+  if color1[3] ~= color2[3] then return false end
+
+  return true
 end
 
 --SOUND SETUP-----------------------------------------------------
@@ -295,24 +397,20 @@ end
 local function redraw_paddles()
 
   --paddle1
-  for i = 1, window_height do    
+  for i = 1, display.height do    
     if i > paddles[1] + (paddlesize - 1)/2 or i < paddles[1] - (paddlesize - 1)/2 then
-      pixelgrid[2][i].bitmap = "Bitmaps/0.bmp"
-      pixelgrid[2][i].mode = bitmapmodes[1]
+      display.buffer1[2][i] = colors[0]
     else
-      pixelgrid[2][i].bitmap = "Bitmaps/1.bmp"
-      pixelgrid[2][i].mode = bitmapmodes[colormode]
+      display.buffer1[2][i] = colors[1]
     end
   end  
   
   --paddle2
-  for i = 1, window_height do    
+  for i = 1, display.height do    
     if i > paddles[2] + (paddlesize - 1)/2 or i < paddles[2] - (paddlesize - 1)/2 then
-      pixelgrid[49][i].bitmap = "Bitmaps/0.bmp"
-      pixelgrid[49][i].mode = bitmapmodes[1]
+      display.buffer1[49][i] = colors[0]
     else
-      pixelgrid[49][i].bitmap = "Bitmaps/1.bmp"
-      pixelgrid[2][i].mode = bitmapmodes[colormode]
+      display.buffer1[49][i] = colors[1]
     end
   end  
 
@@ -324,15 +422,11 @@ local function recolor_all(color)
   if debug_mode then
     debugclocks.recolortotalclock = os.clock()
   end
-
-  for x = 1, window_width do
-    for y = 1, window_height do
-      if pixelgrid[x][y].bitmap == "Bitmaps/0.bmp" then
-        pixelgrid[x][y].mode = bitmapmodes[1]
-      else
-        pixelgrid[x][y].mode = color
-      end
-      
+  
+  
+  for x = 1, display.width do
+    for y = 1, display.height do
+      display.buffer1[x][y] = colors[0]      
     end
   end
   
@@ -377,13 +471,23 @@ local function timer_func()
     
   end
   
+  --store buffer1 from last frame into buffer2
+  display.buffer2 = table.rcopy(display.buffer1)
+  
+  --clear buffer1 to all black
+  for x = 1, display.width do 
+    for y = 1, display.height do
+      display.buffer1[x][y] = colors[0]
+    end
+  end
+  
   if paintmode then
     
     if colormode == 1 then
       --paint back of trail based on current paint color
-      pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format(paintnumbers.paintnumber + paintnumbers.paintnumoffset)      
+      display.buffer1[ball[1]][ball[2]] = colors.rainbow[paintnumbers.paintnumber + paintnumbers.paintnumoffset] 
     else
-      pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.75.bmp"
+      display.buffer1[ball[1]][ball[2]] = colors[75]
     end
   
   elseif trailsmode then
@@ -392,8 +496,7 @@ local function timer_func()
     local backoftrail = math.floor(math.min(traillength, previousmaxtraillength))
   
     --set back of trail to black
-    pixelgrid[trailcoords[backoftrail][1]][trailcoords[backoftrail][2]].bitmap = "Bitmaps/0.bmp"
-    pixelgrid[trailcoords[backoftrail][1]][trailcoords[backoftrail][2]].mode = bitmapmodes[1]
+    --display.buffer1[trailcoords[backoftrail][1]][trailcoords[backoftrail][2]] = colors[0]
     
     --pass coordinates up the trail
     for i = 2, traillength do
@@ -409,75 +512,77 @@ local function timer_func()
       if i <= previousmaxtraillength then
         if i < maxtraillength then          
           if colormode == 1 then
-            pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format((i-1)%(24))
+            display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors.rainbow[(i-1)%24]
           else
-            pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = "Bitmaps/0.75.bmp"
-            pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = bitmapmodes[colormode]
+            display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors[75]
           end
         else          
-          pixelgrid[trailcoords[i][1]][trailcoords[i][2]].bitmap = "Bitmaps/0.bmp"
-          pixelgrid[trailcoords[i][1]][trailcoords[i][2]].mode = bitmapmodes[1]
+          display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors[0]
         end
       end
       
     end
   else
     --erase previous position of ball
-    pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/0.bmp"
-    pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[1] 
+    --display.buffer1[ball[1]][ball[2]] = colors[0]
   end
     
   --update ball position
   ball[1] = ball[1] + direction[1]
-  ball[2] = ball[2] + direction[2]
+  ball[2] = ball[2] + direction[2]  
+  if ball[2] < 1 then ball[2] = 1
+  elseif ball[2] > display.height then ball[2] = display.height
+  end
+  
+  --add ripples from ball movement
+  display.buffer3[ball[1]][ball[2]] = display.buffer3[ball[1]][ball[2]] + display.movestrength
   
   --paddle1  
   paddles[1] = paddles[1] + paddles[3] * movespeed  --adding arrow key input to position
   
   --stopping paddle1 from going past edge of screen
   if paddles[1] - (paddlesize + 1)/2 < 1 then paddles[1] = (paddlesize + 1)/2
-  elseif paddles[1] + (paddlesize + 1)/2 > window_height then paddles[1] = window_height - (paddlesize - 1)/2
+  elseif paddles[1] + (paddlesize + 1)/2 > display.height then paddles[1] = display.height - (paddlesize - 1)/2
   end
   
   if paddle1mode == 1 then
-  
+    
+    
     --clearing previous location of paddle1
-    if paddles[3] ~= 0 then    
-      for i = 1, movespeed do
-        pixelgrid[2][paddles[1] - (paddlesize + 1 + (i-1)*2)/2 * paddles[3]].bitmap = "Bitmaps/0.bmp"
-        pixelgrid[2][paddles[1] - (paddlesize + 1 + (i-1)*2)/2 * paddles[3]].mode = bitmapmodes[1]
-      end
-    end
+    --if paddles[3] ~= 0 then    
+    --  for i = 1, movespeed do
+    --    display.buffer1[2][paddles[1] - (paddlesize + 1 + (i-1)*2)/2 * paddles[3]] = colors[0]
+    --  end
+    --end
     
   elseif paddle1mode == 2 then
   
     paddles[1] = midi_value
     
-      --stopping paddle1 from going past edge of screen
-  if paddles[1] - (paddlesize + 1)/2 < 1 then paddles[1] = (paddlesize + 1)/2
-  elseif paddles[1] + (paddlesize + 1)/2 > window_height then paddles[1] = window_height - (paddlesize - 1)/2
-  end
+    --stopping paddle1 from going past edge of screen
+    if paddles[1] - (paddlesize + 1)/2 < 1 then paddles[1] = (paddlesize + 1)/2
+    elseif paddles[1] + (paddlesize + 1)/2 > display.height then paddles[1] = display.height - (paddlesize - 1)/2
+    end  
   
+    --[[
     --clearing previous location of paddle1
     for i = 1, (paddlesize + 1)/2 do  
-      if i == 1 then pixelgrid[2][paddle1last].bitmap = "Bitmaps/0.bmp"
-        pixelgrid[2][paddle1last].mode = bitmapmodes[1]
+      if i == 1 then 
+        display.buffer1[2][paddle1last] = colors[0]
       else
         
         local paddle1lastlo = paddle1last - (i - 1)
         local paddle1lasthi = paddle1last + (i - 1)
       
         if (paddle1lastlo) > 0 then
-          pixelgrid[2][paddle1lastlo].bitmap = "Bitmaps/0.bmp"
-          pixelgrid[2][paddle1lastlo].mode = bitmapmodes[1]
+          display.buffer1[2][paddle1lastlo] = colors[0]
         end
         if (paddle1lasthi) < 51 then        
-          pixelgrid[2][paddle1lasthi].bitmap = "Bitmaps/0.bmp"
-          pixelgrid[2][paddle1lasthi].mode = bitmapmodes[1]
+          display.buffer1[2][paddle1lasthi] = colors[0]
         end
       end
     end    
-  
+    --]]
   end
   
   --paddle2
@@ -488,7 +593,7 @@ local function timer_func()
   
     --stopping paddle2 from going past the edge of the screen
     if paddles[2] - (paddlesize + 1)/2 < 1 then paddles[2] = (paddlesize + 1)/2
-    elseif paddles[2] + (paddlesize + 1)/2 > window_height then paddles[2] = window_height - (paddlesize - 1)/2
+    elseif paddles[2] + (paddlesize + 1)/2 > display.height then paddles[2] = display.height - (paddlesize - 1)/2
     end
   
   
@@ -510,38 +615,35 @@ local function timer_func()
     paddles[2] = paddles[2] + paddles[4]*how_far_to_move  --apply direction to cpu paddle  
   
     if paddles[2] - (paddlesize + 1)/2 < 1 then paddles[2] = (paddlesize + 1)/2
-    elseif paddles[2] + (paddlesize + 1)/2 > window_height then paddles[2] = window_height - (paddlesize - 1)/2
+    elseif paddles[2] + (paddlesize + 1)/2 > display.height then paddles[2] = display.height - (paddlesize - 1)/2
     end
   end
   
+  --[[
   --clearing previous location of paddle2
   for i = 1, (paddlesize + 1)/2 do
-    if i == 1 then pixelgrid[49][paddle2last].bitmap = "Bitmaps/0.bmp"
-      pixelgrid[49][paddle2last].mode = bitmapmodes[1]
+    if i == 1 then 
+      display.buffer1[49][paddle2last] = colors[0]
     else
     
       local paddle2lastlo = paddle2last - (i - 1)
       local paddle2lasthi = paddle2last + (i - 1)
     
       if (paddle2lastlo) > 0 then
-        pixelgrid[49][paddle2lastlo].bitmap = "Bitmaps/0.bmp"
-        pixelgrid[49][paddle2lastlo].mode = bitmapmodes[1]
+        display.buffer1[49][paddle2lastlo] = colors[0]
       end
       if (paddle2lasthi) < 51 then
-        pixelgrid[49][paddle2lasthi].bitmap = "Bitmaps/0.bmp"
-        pixelgrid[49][paddle2lasthi].mode = bitmapmodes[1]
+        display.buffer1[49][paddle2lasthi] = colors[0]
       end
     end
   end
+  --]]
     
   --ball
   
-  if ball[2] < 1 then ball[2] = 1
-  elseif ball[2] > window_height then ball[2] = window_height
-  end
-  
   if ball[1] == 3 then
     if ball[2] > paddles[1] - (paddlesize + 1)/2 and ball[2] < paddles[1] + (paddlesize + 1)/2 then
+      display.buffer4[ball[1]][ball[2]] = display.hitstrength
       direction[1] = -direction[1]      
       
       if soundsetupsuccess then
@@ -598,7 +700,8 @@ local function timer_func()
     end
   elseif ball[1] == 48 then
     if ball[2] > paddles[2] - (paddlesize + 1)/2 and ball[2] < paddles[2] + (paddlesize + 1)/2 then
-      direction[1] = -direction[1]      
+      direction[1] = -direction[1]
+      display.buffer4[ball[1]][ball[2]] = display.hitstrength
       
       if soundsetupsuccess then
         if readytotranspose then
@@ -652,8 +755,8 @@ local function timer_func()
     sound_score_p2()
     scores[2] = scores[2] + 1
     vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
-    ball[1] = window_width/2
-    ball[2] = math.random(window_height/2 - spawnrange, window_height/2 + spawnrange)
+    ball[1] = display.width/2
+    ball[2] = math.random(display.height/2 - spawnrange, display.height/2 + spawnrange)
     direction[1] = -direction[1]
     direction[2] = 0
   elseif ball[1] == 51 then
@@ -663,8 +766,8 @@ local function timer_func()
     sound_score_p1()
     scores[1] = scores[1] + 1
     vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
-    ball[1] = window_width/2
-    ball[2] = math.random(window_height/2 - spawnrange, window_height/2 + spawnrange)
+    ball[1] = display.width/2
+    ball[2] = math.random(display.height/2 - spawnrange, display.height/2 + spawnrange)
     direction[1] = -direction[1]
     direction[2] = 0
   end
@@ -679,30 +782,66 @@ local function timer_func()
   end
   
   
-  --drawing screen  
-  --if paintmode and colormode == 1 then
-    --pixelgrid[ball[1]][ball[2]].bitmap = ("Bitmaps/rainbow/%i.bmp"):format(paintnumber-15) 
-    --pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[1]
-  --else  
-    pixelgrid[ball[1]][ball[2]].bitmap = "Bitmaps/1.bmp"
-    pixelgrid[ball[1]][ball[2]].mode = bitmapmodes[colormode]
-  --end
+  --drawing screen into the buffer
+  display.buffer1[ball[1]][ball[2]] = colors[1]
   
   local xcoord = 2
   for p = 1, 2 do
     for i = 1, (paddlesize + 1)/2 do  
       if i == 1 then 
-        pixelgrid[xcoord][paddles[p]].bitmap = "Bitmaps/1.bmp"
-        pixelgrid[xcoord][paddles[p]].mode = bitmapmodes[colormode]
+        display.buffer1[xcoord][paddles[p]] = colors[1]
       else
-        pixelgrid[xcoord][paddles[p] - (i - 1)].bitmap = "Bitmaps/1.bmp"
-        pixelgrid[xcoord][paddles[p] - (i - 1)].mode = bitmapmodes[colormode]
-        pixelgrid[xcoord][paddles[p] + (i - 1)].bitmap = "Bitmaps/1.bmp"
-        pixelgrid[xcoord][paddles[p] + (i - 1)].mode = bitmapmodes[colormode]
+        display.buffer1[xcoord][paddles[p] - (i - 1)] = colors[1]
+        display.buffer1[xcoord][paddles[p] + (i - 1)] = colors[1]
       end
     end
     xcoord = 49
-  end  
+  end
+  
+  for x = 1, display.width do
+    for y = 1, display.height do
+      
+      display.buffer3[x][y] = (
+          display.buffer4[x-1][y] + 
+          display.buffer4[x+1][y] + 
+          display.buffer4[x][y-1] + 
+          display.buffer4[x][y+1]) / 2 - display.buffer3[x][y]
+          
+      display.buffer3[x][y] = display.buffer3[x][y] * display.damping
+      
+      
+        
+      if same_color(display.buffer1[x][y], colors[0]) then
+        local buffer3val = display.buffer3[x][y]
+        if math.abs(buffer3val) < display.threshold then display.buffer1[x][y] = colors[0]
+        else
+          display.buffer1[x][y] = table.rcopy(colors.rainbow[math.floor((buffer3val * display.multiplier + math.floor(display.offset)) % 24)])
+          display.buffer1[x][y][1] = math.floor(display.buffer1[x][y][1] * buffer3val * display.dimming)
+          display.buffer1[x][y][2] = math.floor(display.buffer1[x][y][2] * buffer3val * display.dimming)
+          display.buffer1[x][y][3] = math.floor(display.buffer1[x][y][3] * buffer3val * display.dimming)
+          
+          if display.buffer1[x][y][1] < 1 then display.buffer1[x][y][1] = 1
+          elseif display.buffer1[x][y][1] > 255 then display.buffer1[x][y][1] = 255 end
+          
+          if display.buffer1[x][y][2] < 1 then display.buffer1[x][y][2] = 1
+          elseif display.buffer1[x][y][2] > 255 then display.buffer1[x][y][2] = 255 end
+          
+          if display.buffer1[x][y][3] < 1 then display.buffer1[x][y][3] = 1
+          elseif display.buffer1[x][y][3] > 255 then display.buffer1[x][y][3] = 255 end
+        end
+      end
+        
+    end
+  end
+    
+  local tempbuffer = table.rcopy(display.buffer4)
+  display.buffer4 = table.rcopy(display.buffer3)
+  display.buffer3 = table.rcopy(tempbuffer)
+    
+  display.offset = display.offset + display.offsetrate
+  
+  --finally, push the buffer to the actual display
+  push_buffer()
   
   if hasmaxtraillengthbeenchanged then
     previousmaxtraillength = maxtraillength
@@ -746,9 +885,8 @@ function create_paddles_window()
 
   window_title = "PADDLES"
 
-  -- create the main content column, but don't add any views yet:
-  window_content = vb:row {
-  
+  -- create the main content rack (row), and add just the left-most control (P1's control slider)
+  window_content = vb:row {  
     vb:minislider {
     id = "control_slider",
     height = 199,
@@ -759,18 +897,51 @@ function create_paddles_window()
     midi_mapping = "mom.MOMarmalade.Paddles:Control Slider",
     tooltip = "This slider controls the paddle.\nTry mapping to a physical MIDI control!",
     notifier = function(value)
-      
+          
       local newvalue = value + 64
       
       paddle1mode = 2
       paddle1last = paddles[1]
-      midi_value = 51 - math.floor((newvalue*window_height)/128)  
-      
+      midi_value = math.floor((newvalue*display.height)/128)        
     end
     }
-  
   }
   
+  --create the display grid
+  local displayrow = vb:row {}
+  local displaycolumn = vb:column{
+    id = "display_column",
+    spacing = -display.height * display.scale
+  }
+  
+  --populate the display
+  for x = 1, display.width do         
+    display.display[x] = {}
+    local column = vb:column {}    
+    for y = 1, display.height do    
+      --fill the column with pixels
+      local row = vb:row{margin = display.margin}
+      display.display[x][display.height+1 - y] = vb:button {
+        active = false,
+        width = 6+display.scale,
+        height = 6+display.scale,
+        color = {1,1,1}
+      }      
+      --add each pixel by "hand" into the column from bottom to top
+      row:add_child(display.display[x][display.height+1 - y])
+      column:add_child(row)
+      end
+    --add the column into the row from left to right
+    displayrow:add_child(column)
+  end
+  
+  --add the display to the window content
+  window_content:add_child(displayrow)
+  
+  --initialize the display buffers
+  init_buffers()
+  
+  --[[
   for x = 1, 50 do
     
     pixelgrid[x] = {}
@@ -795,6 +966,7 @@ function create_paddles_window()
     window_content:add_child(row)  
   
   end  
+  --]]
   
   local secondslider = vb:column {
   
@@ -814,7 +986,7 @@ function create_paddles_window()
       
         paddle2mode = 2
         paddle2last = paddles[2]
-        midi_value_two = 51 - math.floor((newvalue*window_height)/128)  
+        midi_value_two = math.floor((newvalue*display.height)/128)  
       
       end
     }  
@@ -961,23 +1133,23 @@ function create_paddles_window()
           vb.views.paint_mode_checkbox.value = false
           trailsmode = value
           vb.views.trails_mode_checkbox.value = value
-          if value == false then 
+          --if value == false then 
+            --[[
             --clear the screen      
-            for x = 1, window_width do
-              for y = 1, window_height do
-                if pixelgrid[x][y].bitmap ~= "Bitmaps/1.bmp" then
-                  pixelgrid[x][y].bitmap = "Bitmaps/0.bmp"
-                  pixelgrid[x][y].mode = bitmapmodes[1]
+            for x = 1, display.width do
+              for y = 1, display.height do
+                if not same_color(display.buffer1[x][y], colors[1]) then
+                  display.buffer1[x][y] = colors[0]
                 end      
               end
             end                    
-          else
+          else--]]
             for i = 1, traillength do
               --reset trail coordinates to the ball position
               trailcoords[i][1] = ball[1]
               trailcoords[i][2] = ball[2]
             end
-          end
+          --end
         end    
       },
       
@@ -1021,17 +1193,17 @@ function create_paddles_window()
           paintmode = value
           vb.views.paint_mode_checkbox.value = value
           
-          if not value then
+          --[[if not value then
             --clear the screen
-            for x = 1, window_width do
-              for y = 1, window_height do
-                if pixelgrid[x][y].bitmap ~= "Bitmaps/1.bmp" then
-                  pixelgrid[x][y].bitmap = "Bitmaps/0.bmp"
-                  pixelgrid[x][y].mode = bitmapmodes[1]
+            for x = 1, display.width do
+              for y = 1, display.height do
+                if not same_color(display.buffer1[x][y], colors[1]) then
+                  display.buffer1[x][y] = colors[0]
                 end      
               end
-            end          
+            end       
           end
+          --]]
         end    
       },
       
@@ -1215,7 +1387,7 @@ local function midi_handler(message)
     
     paddle1mode = 2
     paddle1last = paddles[1]
-    midi_value = 51 - math.floor((newvalue*window_height)/128)
+    midi_value = 51 - math.floor((newvalue*display.height)/128)
     if move_slider_with_midi then
       vb.views.control_slider.value = newvalue - 63
     end
@@ -1236,7 +1408,7 @@ local function midi_handler_two(message)
     
     paddle2mode = 2
     paddle2last = paddles[2]
-    midi_value_two = 51 - math.floor((newvalue*window_height)/128)
+    midi_value_two = 51 - math.floor((newvalue*display.height)/128)
     if move_slider_with_midi then
       vb.views.control_slider_two.value = newvalue - 63
     end
