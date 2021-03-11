@@ -1,6 +1,6 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = false 
+local debug_mode = true 
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -30,10 +30,11 @@ local display = {
   buffer2 = {},
   buffer3 = {},
   buffer4 = {},
-  hitstrength = 5,
-  movestrength = -0.15,
-  damping = 0.975,
-  threshold = 0.1,
+  scorestrength = 14,
+  hitstrength = 3.5,
+  movestrength = -0.1,
+  damping = 0.97,
+  threshold = 0.2,
   multiplier = 10,
   dimming = 2.5,
   offset = 0,
@@ -83,9 +84,9 @@ local colormode = 1
 local trailsmode = true
 local trailcoords = {}
 local traillength = 1
-local maxtraillength = 50
+local maxtraillength = 25
 local hasmaxtraillengthbeenchanged = false
-local previousmaxtraillength = 50
+local previousmaxtraillength = 25
 
 local paintmode = false
 local paintnumbers = {
@@ -451,24 +452,55 @@ local function recolor_all(color)
   
 end
 
+--MODIFY THEME-----------------------------------------
+local function modify_theme()
+
+  app:save_theme("Themes/OriginalTheme.xrnc")
+
+  --open/cache the file contents as a string
+  local themefile = io.open("Themes/OriginalTheme.xrnc")
+  local themestring = themefile:read("*a")
+  themefile:close()
+  
+  --find the indices where the TextureSet property begins and ends
+  local i = {}
+  i[1], i[2] = themestring:find("<TextureSet>",0,true)
+  i[3], i[4] = themestring:find("</TextureSet>",0,true)
+  
+  local originaltextureset = themestring:sub(i[1],i[4])
+  
+  --replace whatever the current texture
+  themestring = themestring:gsub(originaltextureset, "<TextureSet>None</TextureSet>")
+  
+  --write the new file
+  themefile = io.open("Themes/TempTheme.xrnc", "w")
+  themefile:write(themestring)
+  themefile:close()
+  
+  app:load_theme("Themes/TempTheme.xrnc")
+
+end
+
+--RESTORE THEME--------------------------------------
+local function restore_theme()
+
+  app:load_theme("Themes/OriginalTheme.xrnc")
+
+end
+
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
 
-  if debug_mode then
-    debugclocks.frametotalclock = os.clock()
-  end
-
-  if not paddles_window_obj.visible then
-  
+  if not paddles_window_obj.visible then  
     if gameplaying then
-      gameplaying = false          
+      gameplaying = false
+      restore_theme()        
       tool:remove_timer(timer_func)
       vb.views.start_stop.text = "START"          
       if soundmode and soundsetupsuccess then
         sound_destroy()
-      end
-    end 
-    
+      end 
+    end     
   end
   
   --store buffer1 from last frame into buffer2
@@ -694,7 +726,7 @@ local function timer_func()
       if paddlesize == 1 then target = 0 end
       
       if debug_mode then
-        print("target: " .. target)
+        --print("target: " .. target)
       end
       
     end
@@ -749,6 +781,7 @@ local function timer_func()
       
     end
   elseif ball[1] == 0 then
+    display.buffer3[1][ball[2]] = display.buffer3[1][ball[2]] + display.scorestrength
     if paintmode then paintnumbers.paintnumber = ((paintnumbers.paintnumber + 1)%paintnumbers.paintnumrange) end
     readytotranspose = true
     transposeupordown = -1
@@ -760,6 +793,7 @@ local function timer_func()
     direction[1] = -direction[1]
     direction[2] = 0
   elseif ball[1] == 51 then
+    display.buffer3[50][ball[2]] = display.buffer3[50][ball[2]] + display.scorestrength
     if paintmode then paintnumbers.paintnumber = ((paintnumbers.paintnumber + 1)%paintnumbers.paintnumrange) end
     readytotranspose = true
     transposeupordown = 1
@@ -773,7 +807,7 @@ local function timer_func()
   end
   
   if debug_mode then
-    print("paintnumber: " .. paintnumbers.paintnumber)
+    --print("paintnumber: " .. paintnumbers.paintnumber)
   end
   
   if ball[2] == 50 or ball[2] == 1 then
@@ -849,8 +883,8 @@ local function timer_func()
   end
   
   if debug_mode then
-    debugclocks.frametotalclock = os.clock() - debugclocks.frametotalclock 
-    print("FrameTotalClock: ", debugclocks.frametotalclock)
+    print("FrameTotalClock: ", os.clock() - debugclocks.frametotalclock)
+    debugclocks.frametotalclock = os.clock()
   end
   
 end
@@ -858,7 +892,8 @@ end
 --START GAME---------------------------------------------------
 local function start_game()
 
-  gameplaying = true         
+  gameplaying = true
+  modify_theme() 
   tool:add_timer(timer_func, msperframe)
   vb.views.start_stop.text = "STOP"          
   if soundmode and not soundsetupsuccess then
@@ -871,13 +906,15 @@ end
 local function stop_game()
 
   if gameplaying then
-    gameplaying = false          
+    gameplaying = false
+    restore_theme()     
     tool:remove_timer(timer_func)
     vb.views.start_stop.text = "START"          
     if soundmode and soundsetupsuccess then
       sound_destroy()
     end   
   end
+  
 end
 
 --CREATE PADDLES WINDOW----------------------------------------------------------------------------- 
@@ -1162,13 +1199,13 @@ function create_paddles_window()
       vb:rotary { 
         id = "trail_length_rotary", 
         tooltip = "Max Trail Length", 
-        min = -48, 
-        max = 48, 
+        min = -24, 
+        max = 24, 
         value = 0, 
         width = 18, 
         height = 18, 
         notifier = function(value)        
-          maxtraillength = 50 + value
+          maxtraillength = 25 + value
           hasmaxtraillengthbeenchanged = true
         end 
       }
@@ -1256,8 +1293,8 @@ function create_paddles_window()
       vb:rotary { 
         id = "game_speed_rotary", 
         tooltip = "Game Speed", 
-        min = -25, 
-        max = 25, 
+        min = -10, 
+        max = 10, 
         value = 0, 
         width = 18, 
         height = 18, 
