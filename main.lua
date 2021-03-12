@@ -1,6 +1,6 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = true 
+local debug_mode = true
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -85,8 +85,6 @@ local trailsmode = true
 local trailcoords = {}
 local traillength = 1
 local maxtraillength = 25
-local hasmaxtraillengthbeenchanged = false
-local previousmaxtraillength = 25
 
 local paintmode = false
 local paintnumbers = {
@@ -194,6 +192,18 @@ local function push_buffer()
               
       end
       
+    end
+  end
+
+end
+
+--RESCALE DISPLAY---------------------------------
+local function rescale_display(scale)
+
+  for x = 1, display.width do 
+    for y = 1, display.height do
+      display.display[x][y].width = 6 + scale
+      display.display[x][y].height = 6 + scale
     end
   end
 
@@ -373,8 +383,7 @@ local function sound_pitch_up()
     if currenttranspose < transposemax then
       
       currenttranspose = currenttranspose + 1
-      song:instrument(1).transpose = currenttranspose
-      
+      song:instrument(1).transpose = currenttranspose      
     
     end      
   end
@@ -395,41 +404,24 @@ local function sound_pitch_down()
 end
 
 --REDRAW PADDLES------------------------------------------------
-local function redraw_paddles()
-
-  --paddle1
-  for i = 1, display.height do    
-    if i > paddles[1] + (paddlesize - 1)/2 or i < paddles[1] - (paddlesize - 1)/2 then
-      display.buffer1[2][i] = colors[0]
-    else
-      display.buffer1[2][i] = colors[1]
-    end
-  end  
+local function redraw_paddles(oldsize, newsize)
   
-  --paddle2
-  for i = 1, display.height do    
-    if i > paddles[2] + (paddlesize - 1)/2 or i < paddles[2] - (paddlesize - 1)/2 then
-      display.buffer1[49][i] = colors[0]
-    else
-      display.buffer1[49][i] = colors[1]
-    end
-  end  
+  --erase the old position of the paddles
+  for i = 0, oldsize-1 do  
+    display.display[2][paddles[1] - math.floor(oldsize/2) + i].color = colors[0]  --paddle1
+    display.display[49][paddles[2] - math.floor(oldsize/2) + i].color = colors[0]  --paddle2    
+  end
+  
+  --draw the new paddles in the correct position/size
+  for i = 0, newsize-1 do    
+    display.display[2][paddles[1] - math.floor(newsize/2) + i].color = colors[1]  --paddle1
+    display.display[49][paddles[2] - math.floor(newsize/2) + i].color = colors[1]  --paddle2    
+  end
 
 end
 
 --RECOLOR ALL---------------------------------------------------
 local function recolor_all(color)
-
-  if debug_mode then
-    debugclocks.recolortotalclock = os.clock()
-  end
-  
-  
-  for x = 1, display.width do
-    for y = 1, display.height do
-      display.buffer1[x][y] = colors[0]      
-    end
-  end
   
   vb.views.paddle_size_bitmap.mode = color
   vb.views.paddle_speed_bitmap.mode = color
@@ -444,11 +436,6 @@ local function recolor_all(color)
   vb.views.game_speed_bitmap.mode = color
   vb.views.trail_length_bitmap.mode = color
   vb.views.paint_mode_bitmap.mode = color
-  
-  if debug_mode then
-    debugclocks.recolortotalclock = os.clock() - debugclocks.recolortotalclock
-    print("RecolorTotalClock = " .. debugclocks.recolortotalclock)
-  end
   
 end
 
@@ -523,12 +510,6 @@ local function timer_func()
     end
   
   elseif trailsmode then
-  
-    --find back of trail from previous frame
-    local backoftrail = math.floor(math.min(traillength, previousmaxtraillength))
-  
-    --set back of trail to black
-    --display.buffer1[trailcoords[backoftrail][1]][trailcoords[backoftrail][2]] = colors[0]
     
     --pass coordinates up the trail
     for i = 2, traillength do
@@ -541,22 +522,15 @@ local function timer_func()
     
     --set bitmaps of trail coordinates to proper colors    
     for i = 1, traillength do
-      if i <= previousmaxtraillength then
-        if i < maxtraillength then          
-          if colormode == 1 then
-            display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors.rainbow[(i-1)%24]
-          else
-            display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors[75]
-          end
-        else          
-          display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors[0]
+      if i < maxtraillength then          
+        if colormode == 1 then
+          display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors.rainbow[(i-1)%24]
+        else
+          display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors[75]
         end
       end
-      
     end
-  else
-    --erase previous position of ball
-    --display.buffer1[ball[1]][ball[2]] = colors[0]
+    
   end
     
   --update ball position
@@ -594,27 +568,8 @@ local function timer_func()
     --stopping paddle1 from going past edge of screen
     if paddles[1] - (paddlesize + 1)/2 < 1 then paddles[1] = (paddlesize + 1)/2
     elseif paddles[1] + (paddlesize + 1)/2 > display.height then paddles[1] = display.height - (paddlesize - 1)/2
-    end  
-  
-    --[[
-    --clearing previous location of paddle1
-    for i = 1, (paddlesize + 1)/2 do  
-      if i == 1 then 
-        display.buffer1[2][paddle1last] = colors[0]
-      else
-        
-        local paddle1lastlo = paddle1last - (i - 1)
-        local paddle1lasthi = paddle1last + (i - 1)
-      
-        if (paddle1lastlo) > 0 then
-          display.buffer1[2][paddle1lastlo] = colors[0]
-        end
-        if (paddle1lasthi) < 51 then        
-          display.buffer1[2][paddle1lasthi] = colors[0]
-        end
-      end
-    end    
-    --]]
+    end
+    
   end
   
   --paddle2
@@ -650,26 +605,6 @@ local function timer_func()
     elseif paddles[2] + (paddlesize + 1)/2 > display.height then paddles[2] = display.height - (paddlesize - 1)/2
     end
   end
-  
-  --[[
-  --clearing previous location of paddle2
-  for i = 1, (paddlesize + 1)/2 do
-    if i == 1 then 
-      display.buffer1[49][paddle2last] = colors[0]
-    else
-    
-      local paddle2lastlo = paddle2last - (i - 1)
-      local paddle2lasthi = paddle2last + (i - 1)
-    
-      if (paddle2lastlo) > 0 then
-        display.buffer1[49][paddle2lastlo] = colors[0]
-      end
-      if (paddle2lasthi) < 51 then
-        display.buffer1[49][paddle2lasthi] = colors[0]
-      end
-    end
-  end
-  --]]
     
   --ball
   
@@ -724,10 +659,6 @@ local function timer_func()
             
       target = math.random(-1, 1) -- cpu decision making
       if paddlesize == 1 then target = 0 end
-      
-      if debug_mode then
-        --print("target: " .. target)
-      end
       
     end
   elseif ball[1] == 48 then
@@ -806,32 +737,22 @@ local function timer_func()
     direction[2] = 0
   end
   
-  if debug_mode then
-    --print("paintnumber: " .. paintnumbers.paintnumber)
-  end
-  
   if ball[2] == 50 or ball[2] == 1 then
     sound_wall()
     direction[2] = -direction[2]
   end
   
-  
   --drawing screen into the buffer
+  --draw the ball
   display.buffer1[ball[1]][ball[2]] = colors[1]
   
-  local xcoord = 2
-  for p = 1, 2 do
-    for i = 1, (paddlesize + 1)/2 do  
-      if i == 1 then 
-        display.buffer1[xcoord][paddles[p]] = colors[1]
-      else
-        display.buffer1[xcoord][paddles[p] - (i - 1)] = colors[1]
-        display.buffer1[xcoord][paddles[p] + (i - 1)] = colors[1]
-      end
-    end
-    xcoord = 49
+  --draw the paddles
+  for i = 0, paddlesize-1 do    
+    display.buffer1[2][paddles[1] - math.floor(paddlesize/2) + i] = colors[1]  --paddle1
+    display.buffer1[49][paddles[2] - math.floor(paddlesize/2) + i] = colors[1]  --paddle2    
   end
   
+  --draw the ripple/water effect
   for x = 1, display.width do
     for y = 1, display.height do
       
@@ -842,8 +763,6 @@ local function timer_func()
           display.buffer4[x][y+1]) / 2 - display.buffer3[x][y]
           
       display.buffer3[x][y] = display.buffer3[x][y] * display.damping
-      
-      
         
       if same_color(display.buffer1[x][y], colors[0]) then
         local buffer3val = display.buffer3[x][y]
@@ -876,11 +795,6 @@ local function timer_func()
   
   --finally, push the buffer to the actual display
   push_buffer()
-  
-  if hasmaxtraillengthbeenchanged then
-    previousmaxtraillength = maxtraillength
-    hasmaxtraillengthbeenchanged = false
-  end
   
   if debug_mode then
     print("FrameTotalClock: ", os.clock() - debugclocks.frametotalclock)
@@ -923,24 +837,30 @@ function create_paddles_window()
   window_title = "PADDLES"
 
   -- create the main content rack (row), and add just the left-most control (P1's control slider)
-  window_content = vb:row {  
-    vb:minislider {
-    id = "control_slider",
-    height = 199,
-    width = 18,
-    min = -64,
-    max = 64,
-    value = 0,
-    midi_mapping = "mom.MOMarmalade.Paddles:Control Slider",
-    tooltip = "This slider controls the paddle.\nTry mapping to a physical MIDI control!",
-    notifier = function(value)
-          
-      local newvalue = value + 64
+  window_content = vb:column {
+    id = "window_column",
+    
+    vb:row {
+      id = "window_row",
       
-      paddle1mode = 2
-      paddle1last = paddles[1]
-      midi_value = math.floor((newvalue*display.height)/128)        
-    end
+      vb:minislider {
+      id = "control_slider",
+      height = 199,
+      width = 18,
+      min = -64,
+      max = 64,
+      value = 0,
+      midi_mapping = "Paddles:P1 Control Slider",
+      tooltip = "This slider controls the paddle.\nTry mapping to a physical MIDI control!",
+      notifier = function(value)
+            
+        local newvalue = value + 64
+        
+        paddle1mode = 2
+        paddle1last = paddles[1]
+        midi_value = math.floor((newvalue*display.height)/128)        
+      end
+      }
     }
   }
   
@@ -973,37 +893,10 @@ function create_paddles_window()
   end
   
   --add the display to the window content
-  window_content:add_child(displayrow)
+  vb.views.window_row:add_child(displayrow)
   
   --initialize the display buffers
   init_buffers()
-  
-  --[[
-  for x = 1, 50 do
-    
-    pixelgrid[x] = {}
-    
-    -- create a row
-    local row = vb:column {}
-  
-    for y = 1, 50 do
-      
-      --fill the row with 50 pixels
-      pixelgrid[x][y] = vb:bitmap {
-        bitmap = "Bitmaps/0.bmp"
-      }
-    
-      -- add the pixel by "hand" into the row
-      row:add_child(pixelgrid[x][y])
-      
-      
-    
-    end
-  
-    window_content:add_child(row)  
-  
-  end  
-  --]]
   
   local secondslider = vb:column {
   
@@ -1015,7 +908,7 @@ function create_paddles_window()
       min = -64,
       max = 64,
       value = 0,
-      midi_mapping = "mom.MOMarmalade.Paddles:P2 Control Slider",
+      midi_mapping = "Paddles:P2 Control Slider",
       tooltip = "This slider controls Player 2's paddle.\nTry mapping to a physical MIDI control!",
       notifier = function(value)
       
@@ -1029,7 +922,7 @@ function create_paddles_window()
     }  
   }
   
-  window_content:add_child(secondslider)
+  vb.views.window_row:add_child(secondslider)
   
   local newcolumn = vb:column {
     
@@ -1056,16 +949,16 @@ function create_paddles_window()
         id = "paddle_size_bitmap",
         tooltip = "Paddle Size",
         bitmap = "Bitmaps/paddlesize.bmp",
-        mode = bitmapmodes[1]        
+        mode = bitmapmodes[4]        
       },
       vb:popup {
         tooltip = "Paddle Size",
         width = popup_width,        
         value = 5,      
-        items = {"1","3","5","7","9","11"},
+        items = {"1","3","5","7","9","11","13","15"},
         notifier = function(value)
+          redraw_paddles(paddlesize, value + value-1)
           paddlesize = value + value-1
-          redraw_paddles()
         end    
       }
     },
@@ -1076,7 +969,7 @@ function create_paddles_window()
         id = "paddle_speed_bitmap",
         tooltip = "Paddle Speed",
         bitmap = "Bitmaps/paddlespeed.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:popup {
         tooltip = "Paddle Speed",
@@ -1095,7 +988,7 @@ function create_paddles_window()
         id = "ball_speed_bitmap",
         tooltip = "Ball Speed",
         bitmap = "Bitmaps/ballspeed.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:popup {
         tooltip = "Ball Speed",
@@ -1114,7 +1007,7 @@ function create_paddles_window()
         id = "ball_spawn_range_bitmap",
         tooltip = "Ball Spawn Range",
         bitmap = "Bitmaps/ballrange.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:popup {
         tooltip = "Ball Spawn Range",
@@ -1139,7 +1032,7 @@ function create_paddles_window()
         id = "color_palette_bitmap",
         tooltip = "Color Palette",
         bitmap = "Bitmaps/colorpalette.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:popup {
         tooltip = "Color Palette",
@@ -1147,8 +1040,8 @@ function create_paddles_window()
         value = 1,
         items = {"Classic","Main","Body","Button"},
         notifier = function(value)
-          recolor_all(bitmapmodes[value])
-          colormode = value
+          --recolor_all(bitmapmodes[value])
+          --colormode = value
         end    
       }
     },     
@@ -1159,7 +1052,7 @@ function create_paddles_window()
         id = "trails_bitmap",
         tooltip = "Trails Mode",
         bitmap = "Bitmaps/trailsmode.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:checkbox {
         id = "trails_mode_checkbox",
@@ -1170,17 +1063,6 @@ function create_paddles_window()
           vb.views.paint_mode_checkbox.value = false
           trailsmode = value
           vb.views.trails_mode_checkbox.value = value
-          --if value == false then 
-            --[[
-            --clear the screen      
-            for x = 1, display.width do
-              for y = 1, display.height do
-                if not same_color(display.buffer1[x][y], colors[1]) then
-                  display.buffer1[x][y] = colors[0]
-                end      
-              end
-            end                    
-          else--]]
             for i = 1, traillength do
               --reset trail coordinates to the ball position
               trailcoords[i][1] = ball[1]
@@ -1194,7 +1076,7 @@ function create_paddles_window()
         id = "trail_length_bitmap",
         tooltip = "Max Trail Length",
         bitmap = "Bitmaps/traillength.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:rotary { 
         id = "trail_length_rotary", 
@@ -1218,7 +1100,7 @@ function create_paddles_window()
         id = "paint_mode_bitmap",
         tooltip = "Paint Mode",
         bitmap = "Bitmaps/paintmode.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:checkbox {
         id = "paint_mode_checkbox",
@@ -1229,18 +1111,6 @@ function create_paddles_window()
           vb.views.trails_mode_checkbox.value = false
           paintmode = value
           vb.views.paint_mode_checkbox.value = value
-          
-          --[[if not value then
-            --clear the screen
-            for x = 1, display.width do
-              for y = 1, display.height do
-                if not same_color(display.buffer1[x][y], colors[1]) then
-                  display.buffer1[x][y] = colors[0]
-                end      
-              end
-            end       
-          end
-          --]]
         end    
       },
       
@@ -1248,7 +1118,7 @@ function create_paddles_window()
         id = "sound_bitmap",
         tooltip = "Sound Mode",
         bitmap = "Bitmaps/sound.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:checkbox {
         tooltip = "Sound Mode",
@@ -1272,7 +1142,7 @@ function create_paddles_window()
         id = "two_player_bitmap",
         tooltip = "2-Player Mode",
         bitmap = "Bitmaps/2player.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:checkbox {
         tooltip = "2-Player Mode",
@@ -1288,7 +1158,7 @@ function create_paddles_window()
         id = "game_speed_bitmap",
         tooltip = "Game Speed",
         bitmap = "Bitmaps/clock.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:rotary { 
         id = "game_speed_rotary", 
@@ -1316,7 +1186,7 @@ function create_paddles_window()
         id = "invert_midi1_bitmap",
         tooltip = "Invert P1 MIDI Control",
         bitmap = "Bitmaps/invert1.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:checkbox {
         tooltip = "Invert P1 MIDI Control",
@@ -1329,7 +1199,7 @@ function create_paddles_window()
         id = "invert_midi2_bitmap",
         tooltip = "Invert P2 MIDI Control",
         bitmap = "Bitmaps/invert2.bmp",
-        mode = bitmapmodes[1]
+        mode = bitmapmodes[4]
       },
       vb:checkbox {
         tooltip = "Invert P2 MIDI Control",
@@ -1348,11 +1218,12 @@ function create_paddles_window()
         id = "score_bitmap",
         tooltip = "Score",
         bitmap = "Bitmaps/score.bmp",
-        mode = bitmapmodes[3]
+        mode = bitmapmodes[4]
       },
             
       vb:text {
         width = 36,
+        style = "strong",
         font = "big",
         tooltip = "Score",
         id = "scoretext",
@@ -1370,9 +1241,193 @@ function create_paddles_window()
                
   }
   
-  window_content:add_child(newcolumn)
+  vb.views.window_row:add_child(newcolumn)
   
   
+  --DEBUG CONTROLS--
+  if debug_mode then
+  
+    local debugcontrols = vb:column {
+      --width = "100%",
+      vb:horizontal_aligner { mode = "center", vb:text { text = "\\/ DEBUG CONTROLS \\/" } },
+      
+      vb:row {
+        
+        vb:text { text = "Damping" },
+        vb:valuebox {
+          tooltip = "Damping",
+          width = 77,
+          min = 0,
+          max = 1000,
+          value = display.damping * 1000,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
+            return val*1000
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            if val == 1000 then return "1.0000" end
+            return ("0.%i"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.damping = val/1000
+          end
+        },
+        
+        vb:text { text = "Threshold" },
+        vb:valuebox {
+          tooltip = "Threshold",
+          width = 77,
+          min = 0,
+          max = 1000,
+          value = display.threshold * 1000,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
+            return val*1000
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            if val == 1000 then return "1.0000" end
+            return ("0.%i"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.threshold = val/1000
+          end
+        }
+      },
+      
+      vb:row {
+      
+        vb:text { text = "Multiplier" },
+        vb:valuebox {
+          tooltip = "Multiplier",
+          width = 77,
+          min = 0,
+          max = 100,
+          value = display.multiplier,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%.4f"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.multiplier = val
+          end
+        },
+        
+        vb:text { text = "Dimming" },
+        vb:valuebox {
+          tooltip = "Dimming",
+          width = 77,
+          min = 0,
+          max = 10,
+          value = display.dimming,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%.4f"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.dimming = val
+          end
+        }
+        
+      },
+      
+      vb:row {
+      
+        vb:text { text = "Scale" },
+        vb:valuebox {
+          tooltip = "Scale",
+          width = 77,
+          min = 0,
+          max = 16,
+          value = display.scale,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%i"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.scale = val
+            rescale_display(val)
+          end
+        }
+        
+      }
+      
+      --[[
+        scorestrength = 14,
+        hitstrength = 3.5,
+        movestrength = -0.1,
+        offset = 0,
+        offsetrate = 0.09,
+      --]]
+      
+    }
+  
+    vb.views.window_column:add_child(debugcontrols)
+  
+  end
   
 end
 
@@ -1480,21 +1535,27 @@ end
 
 --MENU/HOTKEY/MIDI ENTRIES-------------------------------------------------------------------------------- 
 
-tool:add_menu_entry { 
-  name = "Main Menu:Tools:Paddles...", 
-  invoke = function() main_function() end 
-}
+if not tool:has_menu_entry("Main Menu:Tools:Paddles...") then
+  tool:add_menu_entry {
+    name = "Main Menu:Tools:Paddles...", 
+    invoke = function() main_function() end 
+  }
+end
 
-renoise.tool():add_midi_mapping{
-  name = "mom.MOMarmalade.Paddles:Control Slider",
-  invoke = function(message)
-    midi_handler(message)
-  end
-}
+if not tool:has_midi_mapping("Paddles:P1 Control Slider") then
+  tool:add_midi_mapping {
+    name = "Paddles:P1 Control Slider",
+    invoke = function(message)
+      midi_handler(message)
+    end
+  }
+end
 
-renoise.tool():add_midi_mapping{
-  name = "mom.MOMarmalade.Paddles:P2 Control Slider",
-  invoke = function(message)
-    midi_handler_two(message)
-  end
-}
+if not tool:has_midi_mapping("Paddles:P2 Control Slider") then
+  tool:add_midi_mapping {
+    name = "Paddles:P2 Control Slider",
+    invoke = function(message)
+      midi_handler_two(message)
+    end
+  }
+end
