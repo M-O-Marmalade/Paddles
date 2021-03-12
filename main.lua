@@ -407,15 +407,25 @@ end
 local function redraw_paddles(oldsize, newsize)
   
   --erase the old position of the paddles
-  for i = 0, oldsize-1 do  
-    display.display[2][paddles[1] - math.floor(oldsize/2) + i].color = colors[0]  --paddle1
-    display.display[49][paddles[2] - math.floor(oldsize/2) + i].color = colors[0]  --paddle2    
+  for i = 0, oldsize-1 do
+    local p1, p2 = paddles[1] - math.floor(oldsize/2) + i, paddles[2] - math.floor(oldsize/2) + i
+    if 0 < p1 and p1 < 51 then
+      display.display[2][p1].color = colors[0]  --paddle1
+    end
+    if 0 < p2 and p2 < 51 then
+      display.display[49][p2].color = colors[0]  --paddle2    
+    end
   end
   
   --draw the new paddles in the correct position/size
-  for i = 0, newsize-1 do    
-    display.display[2][paddles[1] - math.floor(newsize/2) + i].color = colors[1]  --paddle1
-    display.display[49][paddles[2] - math.floor(newsize/2) + i].color = colors[1]  --paddle2    
+  for i = 0, newsize-1 do
+    local p1, p2 = paddles[1] - math.floor(newsize/2) + i, paddles[2] - math.floor(newsize/2) + i
+    if 0 < p1 and p1 < 51 then
+      display.display[2][p1].color = colors[1]  --paddle1
+    end
+    if 0 < p2 and p2 < 51 then
+      display.display[49][p2].color = colors[1]  --paddle2 
+    end   
   end
 
 end
