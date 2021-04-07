@@ -1395,7 +1395,7 @@ function create_paddles_window()
         vb:text { text = "Scale" },
         vb:valuebox {
           tooltip = "Scale",
-          width = 77,
+          width = 48,
           min = 0,
           max = 16,
           value = display.scale,
@@ -1421,17 +1421,162 @@ function create_paddles_window()
             display.scale = val
             rescale_display(val)
           end
+        },
+        
+        vb:text { text = "Offset" },
+        vb:valuebox {
+          tooltip = "Offset",
+          width = 48,
+          min = 0,
+          max = 16,
+          value = display.offset,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%i"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.offset = val
+          end
+        },
+        
+        vb:text { text = "Offset Rate" },
+        vb:valuebox {
+          tooltip = "Offset Rate",
+          width = 48,
+          min = 0,
+          max = 16,
+          value = display.offsetrate,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%i"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.offsetrate = val
+          end
         }
         
-      }
+      },
       
-      --[[
-        scorestrength = 14,
-        hitstrength = 3.5,
-        movestrength = -0.1,
-        offset = 0,
-        offsetrate = 0.09,
-      --]]
+      vb:row {
+      
+        vb:text { text = "Score Strength" },
+        vb:valuebox {
+          tooltip = "Score Strength",
+          width = 77,
+          min = 0,
+          max = 32,
+          value = display.scorestrength,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%i"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.scorestrength = val
+          end
+        },
+        
+        vb:text { text = "hitstrength" },
+        vb:valuebox {
+          tooltip = "hitstrength",
+          width = 48,
+          min = 0,
+          max = 16,
+          value = display.hitstrength,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%i"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.hitstrength = val
+          end
+        }        
+      },
+      
+      vb:text { text = "movestrength" },
+      vb:valuebox {
+        tooltip = "movestrength",
+        width = 48,
+        min = -8,
+        max = 8,
+        value = display.movestrength,
+        
+        --tonumber converts any typed-in user input to a number value 
+        --(called only if value was typed)
+        tonumber = function(str)
+          local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+          val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+          return val
+        end,
+        
+        --tostring is called when field is clicked, 
+        --after tonumber is called,
+        --and after the notifier is called
+        --it converts the value to a formatted string to be displayed
+        tostring = function(val)
+          return ("%i"):format(val)
+        end,        
+        
+        --notifier is called whenever the value is changed
+        notifier = function(val)
+          display.movestrength = val
+        end
+      }
       
     }
   
