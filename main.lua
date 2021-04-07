@@ -1,6 +1,6 @@
 --Paddles - main.lua--
 --DEBUG CONTROLS-------------------------------
-local debug_mode = true
+local debug_mode = false
 
 if debug_mode then
   _AUTO_RELOAD_DEBUG = true
@@ -30,12 +30,12 @@ local display = {
   buffer2 = {},
   buffer3 = {},
   buffer4 = {},
-  scorestrength = 14,
+  scorestrength = 12,
   hitstrength = 3.5,
-  movestrength = -0.1,
-  damping = 0.97,
-  threshold = 0.2,
-  multiplier = 10,
+  movestrength = -0.5,
+  damping = 0.969,
+  threshold = 0.21,
+  multiplier = 11.7,
   dimming = 2.5,
   offset = 0,
   offsetrate = 0.09,
@@ -1426,7 +1426,7 @@ function create_paddles_window()
         vb:text { text = "Offset" },
         vb:valuebox {
           tooltip = "Offset",
-          width = 48,
+          width = 60,
           min = 0,
           max = 16,
           value = display.offset,
@@ -1435,7 +1435,7 @@ function create_paddles_window()
           --(called only if value was typed)
           tonumber = function(str)
             local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
-            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
             return val
           end,
           
@@ -1444,7 +1444,7 @@ function create_paddles_window()
           --and after the notifier is called
           --it converts the value to a formatted string to be displayed
           tostring = function(val)
-            return ("%i"):format(val)
+            return ("%.1f"):format(val)
           end,        
           
           --notifier is called whenever the value is changed
@@ -1456,7 +1456,7 @@ function create_paddles_window()
         vb:text { text = "Offset Rate" },
         vb:valuebox {
           tooltip = "Offset Rate",
-          width = 48,
+          width = 60,
           min = 0,
           max = 16,
           value = display.offsetrate,
@@ -1465,7 +1465,7 @@ function create_paddles_window()
           --(called only if value was typed)
           tonumber = function(str)
             local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
-            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
             return val
           end,
           
@@ -1474,7 +1474,7 @@ function create_paddles_window()
           --and after the notifier is called
           --it converts the value to a formatted string to be displayed
           tostring = function(val)
-            return ("%i"):format(val)
+            return ("%.1f"):format(val)
           end,        
           
           --notifier is called whenever the value is changed
@@ -1490,7 +1490,7 @@ function create_paddles_window()
         vb:text { text = "Score Strength" },
         vb:valuebox {
           tooltip = "Score Strength",
-          width = 77,
+          width = 60,
           min = 0,
           max = 32,
           value = display.scorestrength,
@@ -1499,7 +1499,7 @@ function create_paddles_window()
           --(called only if value was typed)
           tonumber = function(str)
             local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
-            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
             return val
           end,
           
@@ -1508,7 +1508,7 @@ function create_paddles_window()
           --and after the notifier is called
           --it converts the value to a formatted string to be displayed
           tostring = function(val)
-            return ("%i"):format(val)
+            return ("%.1f"):format(val)
           end,        
           
           --notifier is called whenever the value is changed
@@ -1520,7 +1520,7 @@ function create_paddles_window()
         vb:text { text = "hitstrength" },
         vb:valuebox {
           tooltip = "hitstrength",
-          width = 48,
+          width = 60,
           min = 0,
           max = 16,
           value = display.hitstrength,
@@ -1529,7 +1529,7 @@ function create_paddles_window()
           --(called only if value was typed)
           tonumber = function(str)
             local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
-            val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
             return val
           end,
           
@@ -1538,7 +1538,7 @@ function create_paddles_window()
           --and after the notifier is called
           --it converts the value to a formatted string to be displayed
           tostring = function(val)
-            return ("%i"):format(val)
+            return ("%.1f"):format(val)
           end,        
           
           --notifier is called whenever the value is changed
@@ -1548,34 +1548,36 @@ function create_paddles_window()
         }        
       },
       
-      vb:text { text = "movestrength" },
-      vb:valuebox {
-        tooltip = "movestrength",
-        width = 48,
-        min = -8,
-        max = 8,
-        value = display.movestrength,
-        
-        --tonumber converts any typed-in user input to a number value 
-        --(called only if value was typed)
-        tonumber = function(str)
-          local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
-          val = math.floor(tonumber(val)) --this tonumber() is Lua's basic string-to-number converter
-          return val
-        end,
-        
-        --tostring is called when field is clicked, 
-        --after tonumber is called,
-        --and after the notifier is called
-        --it converts the value to a formatted string to be displayed
-        tostring = function(val)
-          return ("%i"):format(val)
-        end,        
-        
-        --notifier is called whenever the value is changed
-        notifier = function(val)
-          display.movestrength = val
-        end
+      vb:row {
+        vb:text { text = "movestrength" },
+        vb:valuebox {
+          tooltip = "movestrength",
+          width = 60,
+          min = -8,
+          max = 8,
+          value = display.movestrength,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%.1f"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.movestrength = val
+          end
+        }
       }
       
     }
