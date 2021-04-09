@@ -2,9 +2,8 @@
 --DEBUG CONTROLS-------------------------------
 local debug_mode = false
 
-if debug_mode then
-  _AUTO_RELOAD_DEBUG = true
-end
+_AUTO_RELOAD_DEBUG = true
+
 
 local debugclocks = {
   frametotalclock = 0,
@@ -30,9 +29,19 @@ local display = {
   buffer2 = {},
   buffer3 = {},
   buffer4 = {},
-  scorestrength = 12,
-  hitstrength = 3.5,
-  movestrength = -0.5,
+  endscore = 64,
+  scorestrength = 6,
+  scorestrengthstart = 6,
+  scorestrengthend = 18,
+  hitstrength = 1.5,
+  hitstrengthstart = 1.5,
+  hitstrengthend = 4.5,
+  movestrength = -0.1,
+  movestrengthstart = -0.1,
+  movestrengthend = -0.9,
+  wallstrength = 1.5,
+  wallstrengthstart = 1.5,
+  wallstrengthend = 6.0,
   damping = 0.969,
   threshold = 0.21,
   multiplier = 11.7,
@@ -42,7 +51,8 @@ local display = {
   scale = 4,
   margin = -3,
   height = 50,
-  width = 50
+  width = 50,
+  inv = false
 }
 
 local colors = {
@@ -77,6 +87,20 @@ local colors = {
   }
 }
 
+local sound = {
+  feedback = 0.3,
+  feedbacklo = 0.3,
+  feedbackhi = 0.7,
+  delayrange = 0,
+  delayrangelo = 0,
+  delayrangehi = 500,
+  ldelaycenter = nil,
+  rdelaycenter = nil,
+  send = nil,
+  sendlo = nil,
+  sendhi = 127
+}
+
 local popup_width = 60
 local default_margin = 0
 local bitmapmodes = {"transparent", "main_color", "body_color", "button_color"}
@@ -86,12 +110,7 @@ local trailcoords = {}
 local traillength = 1
 local maxtraillength = 25
 
-local paintmode = false
-local paintnumbers = {
-  paintnumber = 0,
-  paintnumoffset = 14,
-  paintnumrange = 6
-}
+local ripplemode = true
 
 for i = 1, 99 do
   trailcoords[i] = {25,25}
@@ -148,6 +167,13 @@ local single_track = false
 local bpm = 0
 local newbpm = 60
 
+--REMAP RANGE-------------------------------------------------------
+local function remap_range(val,lo1,hi1,lo2,hi2)
+  
+  if lo1 == hi1 then return lo2 end
+  return lo2 + (hi2 - lo2) * ((val - lo1) / (hi1 - lo1))
+end
+
 --GET NEW SONG-------------------------------------------
 local function get_new_song()
 
@@ -180,6 +206,20 @@ end
 
 --PUSH BUFFER-------------------------------------------
 local function push_buffer()
+  
+  if display.inv then
+    
+    for x,v in ipairs(display.buffer1) do
+      for y,b in ipairs(v) do
+        
+        b[1] = 255 - b[1]
+        b[2] = 255 - b[2]
+        b[3] = 255 - b[3]
+             
+      end
+    end
+    
+  end
 
   for x,v in ipairs(display.buffer1) do
     for y,b in ipairs(v) do
@@ -250,6 +290,11 @@ local function sound_setup()
   
   song:instrument(1).transpose = currenttranspose
   
+  sound.ldelaycenter = song:instrument(1):sample_device_chain(1):device(2):parameter(1).value
+  sound.rdelaycenter = song:instrument(1):sample_device_chain(1):device(2):parameter(2).value
+  sound.send = song:instrument(1):sample_device_chain(1):device(2):parameter(5).value
+  sound.sendlo = sound.send
+  
   firstpattern = song.sequencer:pattern(1)
   
   firstline = song:pattern(firstpattern):track(1):line(1):note_column(1)  
@@ -290,89 +335,60 @@ end
 local function sound_up()
 
   if soundsetupsuccess then
-
     song:instrument(1):sample_modulation_set(1):device(2).to.value = 0.64
-
   end
+
 end
 
 --SOUND DOWN----------------------------------------------
 local function sound_down()
 
   if soundsetupsuccess then
-
     song:instrument(1):sample_modulation_set(1):device(2).to.value = 0.36
-
   end
+
 end
 
 --SOUND MIDDLE----------------------------------------------
 local function sound_middle()
 
   if soundsetupsuccess then 
-
     song:instrument(1):sample_modulation_set(1):device(2).to.value = 0.5
-
   end
+
 end
 
---SOUND LEFT------------------------------------------------
-local function sound_left()
+--SOUND PAN------------------------------------------------
+local function sound_pan(val)
 
   if soundsetupsuccess then
-
-    song:instrument(1):sample(1).panning = 0.2
-
+    song:instrument(1):sample(1).panning = val
   end
-end
 
---SOUND RIGHT------------------------------------------------
-local function sound_right()
-
-  if soundsetupsuccess then
-
-    song:instrument(1):sample(1).panning = 0.8
-
-  end
 end
 
 --SOUND WALL------------------------------------------------
 local function sound_wall()
 
-  if soundsetupsuccess then
-  
+  if soundsetupsuccess then  
     firstline.note_value = 53
-    song.transport:trigger_sequence(1)
-  
+    song.transport:trigger_sequence(1)  
   end
+  
 end
 
---SOUND SCORE P1---------------------------------------------
-local function sound_score_p1()
+--SOUND SCORE---------------------------------------------
+local function sound_score(player)
 
   if soundsetupsuccess then
     sound_middle()
-    sound_right()
-    song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = 0.64
-    song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = 0.3   
-    firstline.note_value = 50
+    sound_pan(player==1 and 0.8 or 0.2)
+    song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = player==1 and 0.64 or 0.3
+    song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = player==1 and 0.3 or 0.64
+    firstline.note_value = player==1 and 50 or 52
     song.transport:trigger_sequence(1)
-  
   end
-end
-
---SOUND SCORE P2---------------------------------------------
-local function sound_score_p2()
-
-  if soundsetupsuccess then
-    sound_middle()
-    sound_left()
-    song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = 0.3
-    song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = 0.64
-    firstline.note_value = 52
-    song.transport:trigger_sequence(1)
   
-  end
 end
 
 --SOUND PITCH UP-----------------------------------------------
@@ -380,13 +396,13 @@ local function sound_pitch_up()
 
   if soundsetupsuccess then
   
-    if currenttranspose < transposemax then
-      
+    if currenttranspose < transposemax then      
       currenttranspose = currenttranspose + 1
-      song:instrument(1).transpose = currenttranspose      
-    
+      song:instrument(1).transpose = currenttranspose    
     end      
+    
   end
+  
 end
 
 --SOUND PITCH DOWN-----------------------------------------------
@@ -394,13 +410,49 @@ local function sound_pitch_down()
 
   if soundsetupsuccess then
   
-    if currenttranspose > transposemin then
-      
+    if currenttranspose > transposemin then      
       currenttranspose = currenttranspose - 1
-      song:instrument(1).transpose = currenttranspose
-      
-    end      
+      song:instrument(1).transpose = currenttranspose      
+    end 
+         
   end
+  
+end
+
+--HIT SOUND---------------------------------------------
+local function hit_sound(player)
+
+  if not soundsetupsuccess then return end
+
+  local loffset = math.random(-sound.delayrange, sound.delayrange)
+  local roffset = math.random(-sound.delayrange, sound.delayrange)
+  print(loffset)
+  print(roffset)
+  local ldelay = sound.ldelaycenter + loffset
+  local rdelay = sound.rdelaycenter + roffset
+  
+  if ldelay < 1 then ldelay = 1 end
+  if ldelay > 2000 then ldelay = 2000 end
+  
+  if rdelay < 1 then rdelay = 1 end
+  if rdelay > 2000 then rdelay = 2000 end
+  
+  song:instrument(1):sample_device_chain(1):device(2):parameter(1).value = ldelay
+  song:instrument(1):sample_device_chain(1):device(2):parameter(2).value = rdelay
+  
+  if readytotranspose then
+    if transposeupordown > 0 then sound_pitch_up()
+    elseif transposeupordown < 0 then sound_pitch_down()
+    end
+    readytotranspose = false
+  end
+
+  song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = sound.feedback
+  song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = sound.feedback
+  firstline.note_value = 48
+  sound_pan(player==1 and 0.2 or 0.8)
+  song.transport:trigger_sequence(1)
+
 end
 
 --REDRAW PADDLES------------------------------------------------
@@ -410,10 +462,10 @@ local function redraw_paddles(oldsize, newsize)
   for i = 0, oldsize-1 do
     local p1, p2 = paddles[1] - math.floor(oldsize/2) + i, paddles[2] - math.floor(oldsize/2) + i
     if 0 < p1 and p1 < 51 then
-      display.display[2][p1].color = colors[0]  --paddle1
+      display.display[2][p1].color = table.rcopy(colors[0])  --paddle1
     end
     if 0 < p2 and p2 < 51 then
-      display.display[49][p2].color = colors[0]  --paddle2    
+      display.display[49][p2].color = table.rcopy(colors[0])  --paddle2    
     end
   end
   
@@ -421,10 +473,10 @@ local function redraw_paddles(oldsize, newsize)
   for i = 0, newsize-1 do
     local p1, p2 = paddles[1] - math.floor(newsize/2) + i, paddles[2] - math.floor(newsize/2) + i
     if 0 < p1 and p1 < 51 then
-      display.display[2][p1].color = colors[1]  --paddle1
+      display.display[2][p1].color = table.rcopy(colors[1])  --paddle1
     end
     if 0 < p2 and p2 < 51 then
-      display.display[49][p2].color = colors[1]  --paddle2 
+      display.display[49][p2].color = table.rcopy(colors[1])  --paddle2 
     end   
   end
 
@@ -444,8 +496,8 @@ local function recolor_all(color)
   vb.views.trails_bitmap.mode = color
   vb.views.sound_bitmap.mode = color
   vb.views.game_speed_bitmap.mode = color
-  vb.views.trail_length_bitmap.mode = color
-  vb.views.paint_mode_bitmap.mode = color
+  vb.views.invert_bitmap.mode = color
+  vb.views.ripple_mode_bitmap.mode = color
   
 end
 
@@ -485,9 +537,44 @@ local function restore_theme()
 
 end
 
+--HANDLE SCORE-------------------------------------------
+local function handle_score(player)
+  
+  scores[player] = scores[player] + 1
+  
+  if scores[1] + scores[2] <= display.endscore then
+    local interp = remap_range(scores[1]+scores[2], 0, display.endscore, 0, 1)
+    display.scorestrength = remap_range(interp, 0,1, display.scorestrengthstart,display.scorestrengthend)  
+    display.hitstrength = remap_range(interp, 0,1, display.hitstrengthstart,display.hitstrengthend)  
+    display.movestrength = remap_range(interp, 0,1, display.movestrengthstart,display.movestrengthend)
+    display.wallstrength = remap_range(interp, 0,1, display.wallstrengthstart,display.wallstrengthend)
+    sound.delayrange = remap_range(interp, 0,1, sound.delayrangelo, sound.delayrangehi)
+    sound.feedback = remap_range(interp, 0,1, sound.feedbacklo, sound.feedbackhi)
+    sound.send = remap_range(interp, 0,1, sound.sendlo, sound.sendhi)
+  end
+  
+  song:instrument(1):sample_device_chain(1):device(2):parameter(5).value = sound.send
+  
+  if ripplemode then
+    display.buffer3[ball[1]][ball[2]] = display.buffer3[ball[1]][ball[2]] + display.scorestrength 
+  end 
+  
+  readytotranspose = true
+  transposeupordown = (player==1 and 1 or -1)
+  sound_score(player)
+  
+  vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
+  ball[1] = display.width/2
+  ball[2] = math.random(display.height/2 - spawnrange, display.height/2 + spawnrange)
+  direction[1] = -direction[1]
+  direction[2] = 0
+  
+end
+
 --TIMER FUNC----------------------------------------------------------
 local function timer_func()
 
+  --detect if the window is no longer visible (stop the game, restore theme, etc)
   if not paddles_window_obj.visible then  
     if gameplaying then
       gameplaying = false
@@ -506,20 +593,11 @@ local function timer_func()
   --clear buffer1 to all black
   for x = 1, display.width do 
     for y = 1, display.height do
-      display.buffer1[x][y] = colors[0]
+      display.buffer1[x][y] = {colors[0][1], colors[0][2], colors[0][3]}
     end
   end
   
-  if paintmode then
-    
-    if colormode == 1 then
-      --paint back of trail based on current paint color
-      display.buffer1[ball[1]][ball[2]] = colors.rainbow[paintnumbers.paintnumber + paintnumbers.paintnumoffset] 
-    else
-      display.buffer1[ball[1]][ball[2]] = colors[75]
-    end
-  
-  elseif trailsmode then
+  if trailsmode then
     
     --pass coordinates up the trail
     for i = 2, traillength do
@@ -534,9 +612,9 @@ local function timer_func()
     for i = 1, traillength do
       if i < maxtraillength then          
         if colormode == 1 then
-          display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors.rainbow[(i-1)%24]
+          display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = table.rcopy(colors.rainbow[(i-1)%24])
         else
-          display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = colors[75]
+          display.buffer1[trailcoords[i][1]][trailcoords[i][2]] = table.rcopy(colors[75])
         end
       end
     end
@@ -550,9 +628,13 @@ local function timer_func()
   elseif ball[2] > display.height then ball[2] = display.height
   end
   
-  --add ripples from ball movement
-  display.buffer3[ball[1]][ball[2]] = display.buffer3[ball[1]][ball[2]] + display.movestrength
+  if ripplemode then
   
+    --add ripples from ball movement
+    display.buffer3[ball[1]][ball[2]] = display.buffer3[ball[1]][ball[2]] + display.movestrength
+    
+  end   
+    
   --paddle1  
   paddles[1] = paddles[1] + paddles[3] * movespeed  --adding arrow key input to position
   
@@ -561,17 +643,7 @@ local function timer_func()
   elseif paddles[1] + (paddlesize + 1)/2 > display.height then paddles[1] = display.height - (paddlesize - 1)/2
   end
   
-  if paddle1mode == 1 then
-    
-    
-    --clearing previous location of paddle1
-    --if paddles[3] ~= 0 then    
-    --  for i = 1, movespeed do
-    --    display.buffer1[2][paddles[1] - (paddlesize + 1 + (i-1)*2)/2 * paddles[3]] = colors[0]
-    --  end
-    --end
-    
-  elseif paddle1mode == 2 then
+  if paddle1mode == 2 then
   
     paddles[1] = midi_value
     
@@ -617,26 +689,15 @@ local function timer_func()
   end
     
   --ball
-  
+   
   if ball[1] == 3 then
     if ball[2] > paddles[1] - (paddlesize + 1)/2 and ball[2] < paddles[1] + (paddlesize + 1)/2 then
-      display.buffer4[ball[1]][ball[2]] = display.hitstrength
-      direction[1] = -direction[1]      
       
-      if soundsetupsuccess then
-        if readytotranspose then
-          if transposeupordown > 0 then sound_pitch_up()
-          elseif transposeupordown < 0 then sound_pitch_down()
-          end
-          readytotranspose = false
-        end
+      direction[1] = -direction[1]
       
-        song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = 0.3
-        song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = 0.3
-        firstline.note_value = 48      
-        sound_left()
-        song.transport:trigger_sequence(1)
-      end
+      if ripplemode then display.buffer4[ball[1]][ball[2]] = display.hitstrength end     
+      
+      hit_sound(1)
       
       if trailsmode and traillength < 99 then
         traillength = traillength + 1
@@ -674,22 +735,10 @@ local function timer_func()
   elseif ball[1] == 48 then
     if ball[2] > paddles[2] - (paddlesize + 1)/2 and ball[2] < paddles[2] + (paddlesize + 1)/2 then
       direction[1] = -direction[1]
-      display.buffer4[ball[1]][ball[2]] = display.hitstrength
       
-      if soundsetupsuccess then
-        if readytotranspose then
-          if transposeupordown > 0 then sound_pitch_up()
-          elseif transposeupordown < 0 then sound_pitch_down()
-          end
-          readytotranspose = false
-        end
+      if ripplemode then display.buffer4[ball[1]][ball[2]] = display.hitstrength end
       
-        song:instrument(1):sample_device_chain(1):device(2):parameter(3).value = 0.3
-        song:instrument(1):sample_device_chain(1):device(2):parameter(4).value = 0.3
-        firstline.note_value = 48
-        sound_right()
-        song.transport:trigger_sequence(1)
-      end
+      hit_sound(2)
       
       if trailsmode and traillength ~= 99 then
         traillength = traillength + 1
@@ -722,94 +771,81 @@ local function timer_func()
       
     end
   elseif ball[1] == 0 then
-    display.buffer3[1][ball[2]] = display.buffer3[1][ball[2]] + display.scorestrength
-    if paintmode then paintnumbers.paintnumber = ((paintnumbers.paintnumber + 1)%paintnumbers.paintnumrange) end
-    readytotranspose = true
-    transposeupordown = -1
-    sound_score_p2()
-    scores[2] = scores[2] + 1
-    vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
-    ball[1] = display.width/2
-    ball[2] = math.random(display.height/2 - spawnrange, display.height/2 + spawnrange)
-    direction[1] = -direction[1]
-    direction[2] = 0
+    ball[1] = 1
+    handle_score(2)    
   elseif ball[1] == 51 then
-    display.buffer3[50][ball[2]] = display.buffer3[50][ball[2]] + display.scorestrength
-    if paintmode then paintnumbers.paintnumber = ((paintnumbers.paintnumber + 1)%paintnumbers.paintnumrange) end
-    readytotranspose = true
-    transposeupordown = 1
-    sound_score_p1()
-    scores[1] = scores[1] + 1
-    vb.views.scoretext.text = ("%i:%i"):format(scores[1],scores[2])
-    ball[1] = display.width/2
-    ball[2] = math.random(display.height/2 - spawnrange, display.height/2 + spawnrange)
-    direction[1] = -direction[1]
-    direction[2] = 0
+    ball[1] = 50
+    handle_score(1)    
   end
   
   if ball[2] == 50 or ball[2] == 1 then
     sound_wall()
     direction[2] = -direction[2]
+    display.buffer3[ball[1]][ball[2]] = display.buffer3[ball[1]][ball[2]] + display.wallstrength
   end
   
   --drawing screen into the buffer
   --draw the ball
-  display.buffer1[ball[1]][ball[2]] = colors[1]
+  display.buffer1[ball[1]][ball[2]] = table.rcopy(colors[1])
   
   --draw the paddles
   for i = 0, paddlesize-1 do    
-    display.buffer1[2][paddles[1] - math.floor(paddlesize/2) + i] = colors[1]  --paddle1
-    display.buffer1[49][paddles[2] - math.floor(paddlesize/2) + i] = colors[1]  --paddle2    
+    display.buffer1[2][paddles[1] - math.floor(paddlesize/2) + i] = table.rcopy(colors[1])  --paddle1
+    display.buffer1[49][paddles[2] - math.floor(paddlesize/2) + i] = table.rcopy(colors[1])  --paddle2    
   end
   
-  --draw the ripple/water effect
-  for x = 1, display.width do
-    for y = 1, display.height do
-      
-      display.buffer3[x][y] = (
-          display.buffer4[x-1][y] + 
-          display.buffer4[x+1][y] + 
-          display.buffer4[x][y-1] + 
-          display.buffer4[x][y+1]) / 2 - display.buffer3[x][y]
-          
-      display.buffer3[x][y] = display.buffer3[x][y] * display.damping
+  if ripplemode then
+    
+    --draw the ripple/water effect
+    for x = 1, display.width do
+      for y = 1, display.height do
         
-      if same_color(display.buffer1[x][y], colors[0]) then
-        local buffer3val = display.buffer3[x][y]
-        if math.abs(buffer3val) < display.threshold then display.buffer1[x][y] = colors[0]
-        else
-          display.buffer1[x][y] = table.rcopy(colors.rainbow[math.floor((buffer3val * display.multiplier + math.floor(display.offset)) % 24)])
-          display.buffer1[x][y][1] = math.floor(display.buffer1[x][y][1] * buffer3val * display.dimming)
-          display.buffer1[x][y][2] = math.floor(display.buffer1[x][y][2] * buffer3val * display.dimming)
-          display.buffer1[x][y][3] = math.floor(display.buffer1[x][y][3] * buffer3val * display.dimming)
+        display.buffer3[x][y] = (
+            display.buffer4[x-1][y] + 
+            display.buffer4[x+1][y] + 
+            display.buffer4[x][y-1] + 
+            display.buffer4[x][y+1]) / 2 - display.buffer3[x][y]
+            
+        display.buffer3[x][y] = display.buffer3[x][y] * display.damping
           
-          if display.buffer1[x][y][1] < 1 then display.buffer1[x][y][1] = 1
-          elseif display.buffer1[x][y][1] > 255 then display.buffer1[x][y][1] = 255 end
-          
-          if display.buffer1[x][y][2] < 1 then display.buffer1[x][y][2] = 1
-          elseif display.buffer1[x][y][2] > 255 then display.buffer1[x][y][2] = 255 end
-          
-          if display.buffer1[x][y][3] < 1 then display.buffer1[x][y][3] = 1
-          elseif display.buffer1[x][y][3] > 255 then display.buffer1[x][y][3] = 255 end
+        if same_color(display.buffer1[x][y], colors[0]) then
+          local buffer3val = display.buffer3[x][y]
+          if math.abs(buffer3val) < display.threshold then display.buffer1[x][y] = table.rcopy(colors[0])
+          else
+            display.buffer1[x][y] = table.rcopy(colors.rainbow[math.floor((buffer3val * display.multiplier + math.floor(display.offset)) % 24)])
+            display.buffer1[x][y][1] = math.floor(display.buffer1[x][y][1] * buffer3val * display.dimming)
+            display.buffer1[x][y][2] = math.floor(display.buffer1[x][y][2] * buffer3val * display.dimming)
+            display.buffer1[x][y][3] = math.floor(display.buffer1[x][y][3] * buffer3val * display.dimming)
+            
+            if display.buffer1[x][y][1] < 1 then display.buffer1[x][y][1] = 1
+            elseif display.buffer1[x][y][1] > 255 then display.buffer1[x][y][1] = 255 end
+            
+            if display.buffer1[x][y][2] < 1 then display.buffer1[x][y][2] = 1
+            elseif display.buffer1[x][y][2] > 255 then display.buffer1[x][y][2] = 255 end
+            
+            if display.buffer1[x][y][3] < 1 then display.buffer1[x][y][3] = 1
+            elseif display.buffer1[x][y][3] > 255 then display.buffer1[x][y][3] = 255 end
+          end
         end
+          
       end
-        
     end
-  end
-    
-  local tempbuffer = table.rcopy(display.buffer4)
-  display.buffer4 = table.rcopy(display.buffer3)
-  display.buffer3 = table.rcopy(tempbuffer)
-    
-  display.offset = display.offset + display.offsetrate
+      
+    local tempbuffer = table.rcopy(display.buffer4)
+    display.buffer4 = table.rcopy(display.buffer3)
+    display.buffer3 = table.rcopy(tempbuffer)
+      
+    display.offset = display.offset + display.offsetrate
+  
+  end --end if ripplemode
   
   --finally, push the buffer to the actual display
   push_buffer()
   
-  if debug_mode then
+  --[[if debug_mode then
     print("FrameTotalClock: ", os.clock() - debugclocks.frametotalclock)
     debugclocks.frametotalclock = os.clock()
-  end
+  end--]]
   
 end
 
@@ -1069,8 +1105,6 @@ function create_paddles_window()
         tooltip = "Trails Mode",
         value = true,
         notifier = function(value)          
-          paintmode = false
-          vb.views.paint_mode_checkbox.value = false
           trailsmode = value
           vb.views.trails_mode_checkbox.value = value
             for i = 1, traillength do
@@ -1083,22 +1117,17 @@ function create_paddles_window()
       },
       
       vb:bitmap {
-        id = "trail_length_bitmap",
-        tooltip = "Max Trail Length",
-        bitmap = "Bitmaps/traillength.bmp",
+        id = "invert_bitmap",
+        tooltip = "Invert Color",
+        bitmap = "Bitmaps/invertcolor.bmp",
         mode = bitmapmodes[4]
       },
-      vb:rotary { 
-        id = "trail_length_rotary", 
-        tooltip = "Max Trail Length", 
-        min = -24, 
-        max = 24, 
-        value = 0, 
-        width = 18, 
-        height = 18, 
+      vb:checkbox { 
+        id = "invert_color_checkbox", 
+        tooltip = "Invert Color", 
+        value = display.inv, 
         notifier = function(value)        
-          maxtraillength = 25 + value
-          hasmaxtraillengthbeenchanged = true
+          display.inv = value
         end 
       }
     },
@@ -1107,20 +1136,18 @@ function create_paddles_window()
       margin = default_margin,      
       
       vb:bitmap {
-        id = "paint_mode_bitmap",
-        tooltip = "Paint Mode",
-        bitmap = "Bitmaps/paintmode.bmp",
+        id = "ripple_mode_bitmap",
+        tooltip = "Ripple Mode",
+        bitmap = "Bitmaps/ripplemode.bmp",
         mode = bitmapmodes[4]
       },
       vb:checkbox {
-        id = "paint_mode_checkbox",
-        tooltip = "Paint Mode",
-        value = false,
+        id = "ripple_mode_checkbox",
+        tooltip = "Ripple Mode",
+        value = ripplemode,
         notifier = function(value)          
-          trailsmode = false
-          vb.views.trails_mode_checkbox.value = false
-          paintmode = value
-          vb.views.paint_mode_checkbox.value = value
+          ripplemode = value
+          --vb.views.ripple_mode_checkbox.value = value
         end    
       },
       
@@ -1577,6 +1604,36 @@ function create_paddles_window()
           notifier = function(val)
             display.movestrength = val
           end
+        },
+                
+        vb:text { text = "wallstrength" },
+        vb:valuebox {
+          tooltip = "wallstrength",
+          width = 60,
+          min = -8,
+          max = 8,
+          value = display.wallstrength,
+          
+          --tonumber converts any typed-in user input to a number value 
+          --(called only if value was typed)
+          tonumber = function(str)
+            local val = str:gsub("[^0-9.-]", "") --filter string to get numbers and decimals
+            val = tonumber(val) --this tonumber() is Lua's basic string-to-number converter
+            return val
+          end,
+          
+          --tostring is called when field is clicked, 
+          --after tonumber is called,
+          --and after the notifier is called
+          --it converts the value to a formatted string to be displayed
+          tostring = function(val)
+            return ("%.1f"):format(val)
+          end,        
+          
+          --notifier is called whenever the value is changed
+          notifier = function(val)
+            display.wallstrength = val
+          end
         }
       }
       
@@ -1596,12 +1653,12 @@ local function key_handler(dialog, key)
     if key.name == "up" then
     
       paddle1mode = 1
-      paddles[3] = -1
+      paddles[3] = 1
   
     elseif key.name == "down" then
       
       paddle1mode = 1
-      paddles[3] = 1
+      paddles[3] = -1
   
     end
     
