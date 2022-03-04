@@ -1271,7 +1271,7 @@ function create_paddles_window()
         bitmap = "Bitmaps/question.bmp",
         tooltip = "Help",
         notifier = function()
-          app:open_url("https://xephyrpanda.wixsite.com/citrus64/paddles")
+          app:open_url("https://www.aqu.surf/paddles")
         end
       }
     }
