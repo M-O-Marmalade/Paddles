@@ -2,7 +2,7 @@
 --DEBUG CONTROLS-------------------------------
 local debug_mode = false
 
-_AUTO_RELOAD_DEBUG = true
+_AUTO_RELOAD_DEBUG = false
 
 
 local debugclocks = {
@@ -51,8 +51,7 @@ local display = {
   scale = 4,
   margin = -3,
   height = 50,
-  width = 50,
-  inv = false
+  width = 50
 }
 
 local colors = {
@@ -206,20 +205,6 @@ end
 
 --PUSH BUFFER-------------------------------------------
 local function push_buffer()
-  
-  if display.inv then
-    
-    for x,v in ipairs(display.buffer1) do
-      for y,b in ipairs(v) do
-        
-        b[1] = 255 - b[1]
-        b[2] = 255 - b[2]
-        b[3] = 255 - b[3]
-             
-      end
-    end
-    
-  end
 
   for x,v in ipairs(display.buffer1) do
     for y,b in ipairs(v) do
@@ -480,25 +465,6 @@ local function redraw_paddles(oldsize, newsize)
     end   
   end
 
-end
-
---RECOLOR ALL---------------------------------------------------
-local function recolor_all(color)
-  
-  vb.views.paddle_size_bitmap.mode = color
-  vb.views.paddle_speed_bitmap.mode = color
-  vb.views.ball_speed_bitmap.mode = color
-  vb.views.ball_spawn_range_bitmap.mode = color
-  vb.views.color_palette_bitmap.mode = color
-  vb.views.two_player_bitmap.mode = color
-  vb.views.invert_midi1_bitmap.mode = color
-  vb.views.invert_midi2_bitmap.mode = color
-  vb.views.trails_bitmap.mode = color
-  vb.views.sound_bitmap.mode = color
-  vb.views.game_speed_bitmap.mode = color
-  vb.views.invert_bitmap.mode = color
-  vb.views.ripple_mode_bitmap.mode = color
-  
 end
 
 --MODIFY THEME-----------------------------------------
@@ -897,7 +863,7 @@ function create_paddles_window()
       max = 64,
       value = 0,
       midi_mapping = "Paddles:P1 Control Slider",
-      tooltip = "This slider controls the paddle.\nTry mapping to a physical MIDI control!",
+      tooltip = "P1 Paddle Control\n(You can map this to a physical MIDI control!)",
       notifier = function(value)
             
         local newvalue = value + 64
@@ -955,7 +921,7 @@ function create_paddles_window()
       max = 64,
       value = 0,
       midi_mapping = "Paddles:P2 Control Slider",
-      tooltip = "This slider controls Player 2's paddle.\nTry mapping to a physical MIDI control!",
+      tooltip = "P2 Paddle Control\n(You can map this to a physical MIDI control!)",
       notifier = function(value)
       
         local newvalue = value + 64
@@ -977,6 +943,7 @@ function create_paddles_window()
       vb:button {
         id = "start_stop",
         width = 76,
+        height = 36,
         text = "START",
         tooltip = "You can also use [SPACEBAR] to Start/Stop!",
         notifier = function(t)
@@ -1013,12 +980,12 @@ function create_paddles_window()
       margin = default_margin,
       vb:bitmap {
         id = "paddle_speed_bitmap",
-        tooltip = "Paddle Speed",
+        tooltip = "CPU/Keyboard Paddle Speed",
         bitmap = "Bitmaps/paddlespeed.bmp",
         mode = bitmapmodes[4]
       },
       vb:popup {
-        tooltip = "Paddle Speed",
+        tooltip = "CPU/Keyboard Paddle Speed",
         width = popup_width,
         value = 1,
         items = {"1","2","3","4","5"},
@@ -1032,12 +999,12 @@ function create_paddles_window()
       margin = default_margin,
       vb:bitmap {
         id = "ball_speed_bitmap",
-        tooltip = "Ball Speed",
+        tooltip = "Max Ball Speed",
         bitmap = "Bitmaps/ballspeed.bmp",
         mode = bitmapmodes[4]
       },
       vb:popup {
-        tooltip = "Ball Speed",
+        tooltip = "Max Ball Speed",
         width = popup_width,
         value = 3,
         items = {"1","2","3","4","5","6"},
@@ -1070,39 +1037,59 @@ function create_paddles_window()
           end
         end    
       }
-    }, 
+    },
     
     vb:row {
       margin = default_margin,
       vb:bitmap {
-        id = "color_palette_bitmap",
-        tooltip = "Color Palette",
-        bitmap = "Bitmaps/colorpalette.bmp",
+        id = "display_scale_bitmap",
+        tooltip = "Display Scale",
+        bitmap = "Bitmaps/displayscale.bmp",
         mode = bitmapmodes[4]
       },
       vb:popup {
-        tooltip = "Color Palette",
+        tooltip = "Display Scale",
         width = popup_width,
         value = 1,
-        items = {"Classic","Main","Body","Button"},
+        items = {"100%","150%","200%", "300%", "400%"},
         notifier = function(value)
-          --recolor_all(bitmapmodes[value])
-          --colormode = value
+        
+          local val, sliderval
+          if value == 1 then val = 4 sliderval = 199
+          elseif value == 2 then val = 6 sliderval = 298
+          elseif value == 3 then val = 8 sliderval = 398
+          elseif value == 4 then val = 12 sliderval = 597
+          elseif value == 5 then val = 16 sliderval = 796
+          end
+          
+          vb.views.display_column.spacing = -display.height * val
+          
+          for x,v in ipairs(display.display) do
+            for y,b in ipairs(v) do
+              b.width = 6 + val
+              b.height = 6 + val
+            end
+          end
+          
+          vb.views.control_slider.height = sliderval
+          vb.views.control_slider_two.height = sliderval
+          
         end    
       }
-    },     
+      
+    },
         
     vb:row {
       margin = default_margin,
       vb:bitmap {
         id = "trails_bitmap",
-        tooltip = "Trails Mode",
+        tooltip = "Ball Trail",
         bitmap = "Bitmaps/trailsmode.bmp",
         mode = bitmapmodes[4]
       },
       vb:checkbox {
         id = "trails_mode_checkbox",
-        tooltip = "Trails Mode",
+        tooltip = "Ball Trail",
         value = true,
         notifier = function(value)          
           trailsmode = value
@@ -1117,65 +1104,6 @@ function create_paddles_window()
       },
       
       vb:bitmap {
-        id = "invert_bitmap",
-        tooltip = "Invert Color",
-        bitmap = "Bitmaps/invertcolor.bmp",
-        mode = bitmapmodes[4]
-      },
-      vb:checkbox { 
-        id = "invert_color_checkbox", 
-        tooltip = "Invert Color", 
-        value = display.inv, 
-        notifier = function(value)        
-          display.inv = value
-        end 
-      }
-    },
-    
-    vb:row {
-      margin = default_margin,      
-      
-      vb:bitmap {
-        id = "ripple_mode_bitmap",
-        tooltip = "Ripple Mode",
-        bitmap = "Bitmaps/ripplemode.bmp",
-        mode = bitmapmodes[4]
-      },
-      vb:checkbox {
-        id = "ripple_mode_checkbox",
-        tooltip = "Ripple Mode",
-        value = ripplemode,
-        notifier = function(value)          
-          ripplemode = value
-          --vb.views.ripple_mode_checkbox.value = value
-        end    
-      },
-      
-      vb:bitmap {
-        id = "sound_bitmap",
-        tooltip = "Sound Mode",
-        bitmap = "Bitmaps/sound.bmp",
-        mode = bitmapmodes[4]
-      },
-      vb:checkbox {
-        tooltip = "Sound Mode",
-        value = true,
-        notifier = function(value)
-          soundmode = value
-          if gameplaying then
-            if value then
-              sound_setup()
-            else
-              sound_destroy()
-            end
-          end
-        end
-      }
-    },
-    
-    vb:row {
-      margin = default_margin,
-      vb:bitmap {
         id = "two_player_bitmap",
         tooltip = "2-Player Mode",
         bitmap = "Bitmaps/2player.bmp",
@@ -1189,36 +1117,28 @@ function create_paddles_window()
           paddle2last = paddles[2]
           vb.views.control_slider_two.visible = true
         end    
-      },
-      
-      vb:bitmap {
-        id = "game_speed_bitmap",
-        tooltip = "Game Speed",
-        bitmap = "Bitmaps/clock.bmp",
-        mode = bitmapmodes[4]
-      },
-      vb:rotary { 
-        id = "game_speed_rotary", 
-        tooltip = "Game Speed", 
-        min = -10, 
-        max = 10, 
-        value = 0, 
-        width = 18, 
-        height = 18, 
-        notifier = function(value)
-          msperframe = 40 - value
-          if gameplaying then
-            if tool:has_timer(timer_func) then
-              tool:remove_timer(timer_func)
-            end
-            tool:add_timer(timer_func, msperframe)
-          end
-        end 
       }
-    }, 
+      
+    },
     
     vb:row {
       margin = default_margin,
+      
+      vb:bitmap {
+        id = "ripple_mode_bitmap",
+        tooltip = "Ripples",
+        bitmap = "Bitmaps/ripplemode.bmp",
+        mode = bitmapmodes[4]
+      },
+      vb:checkbox {
+        id = "ripple_mode_checkbox",
+        tooltip = "Ripples",
+        value = ripplemode,
+        notifier = function(value)          
+          ripplemode = value
+        end    
+      },
+      
       vb:bitmap {
         id = "invert_midi1_bitmap",
         tooltip = "Invert P1 MIDI Control",
@@ -1231,7 +1151,33 @@ function create_paddles_window()
         notifier = function(value)
           invert_p1_midi = value
         end    
+      }      
+    },
+    
+    vb:row {
+      margin = default_margin,
+      
+      vb:bitmap {
+        id = "sound_bitmap",
+        tooltip = "Sound FX",
+        bitmap = "Bitmaps/sound.bmp",
+        mode = bitmapmodes[4]
       },
+      vb:checkbox {
+        tooltip = "Sound FX",
+        value = true,
+        notifier = function(value)
+          soundmode = value
+          if gameplaying then
+            if value then
+              sound_setup()
+            else
+              sound_destroy()
+            end
+          end
+        end
+      },
+            
       vb:bitmap {
         id = "invert_midi2_bitmap",
         tooltip = "Invert P2 MIDI Control",
@@ -1244,8 +1190,8 @@ function create_paddles_window()
         notifier = function(value)
           invert_p2_midi = value
         end    
-      }
-    },     
+      }      
+    },
     
     vb:horizontal_aligner { 
       margin = 1,
@@ -1269,7 +1215,7 @@ function create_paddles_window()
       
       vb:button {
         bitmap = "Bitmaps/question.bmp",
-        tooltip = "Help",
+        tooltip = "About",
         notifier = function()
           app:open_url("https://www.aqu.surf/paddles")
         end
