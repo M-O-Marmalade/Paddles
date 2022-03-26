@@ -1,7 +1,7 @@
 A game for [Renoise](https://www.renoise.com/)
 
-[LATEST RELEASE](https://www.renoise.com/tools/paddles)
+[DOWNLOAD](https://www.renoise.com/tools/paddles)
 
-![Paddles Big Artwork](paddles-big.png)
+![Paddles Big Artwork](Artwork/paddles-big.png)
 
-![Gameplay](paddlesgameplay.apng)
+![Gameplay](Artwork/paddlesgameplay.apng)
