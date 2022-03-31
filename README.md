@@ -1,5 +1,5 @@
 A game for [Renoise](https://www.renoise.com/)
 
-[DOWNLOAD](https://www.renoise.com/tools/paddles)
+[Official Download Page](https://www.renoise.com/tools/paddles)
 
 ![Gameplay](Artwork/paddlesgameplay.apng)
