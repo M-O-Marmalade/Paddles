@@ -3,11 +3,11 @@
   <Name>Paddles</Name>
   <Id>mom.MOMarmalade.Paddles</Id>
   <Version>3.0</Version>
-  <ApiVersion>6.1</ApiVersion>
+  <ApiVersion>5</ApiVersion>
   <Author>MOMarmalade [xephyrpanda@yahoo.com]</Author>
   <Category>Game, Paddles, Snake, Nibbles, Fun, Distraction</Category>
   <Description>A game with paddles and a ball.</Description>
-  <Homepage>https://www.aqu.surf/paddles</Homepage>
+  <Homepage>http://www.aqu.surf/paddles</Homepage>
   <Platform/>
   <Icon/>
 </RenoiseScriptingTool>

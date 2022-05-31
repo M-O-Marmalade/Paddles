@@ -1206,7 +1206,7 @@ function create_paddles_window()
             
       vb:text {
         width = 36,
-        style = "strong",
+        --style = "strong",
         font = "big",
         tooltip = "Score",
         id = "scoretext",
@@ -1594,34 +1594,26 @@ end
 --KEY HANDLER FUNCTION------------------------------------------------------------------------------
 local function key_handler(dialog, key) 
 
-  if key.state == "pressed" then
-    
-    if key.name == "up" then
-    
-      paddle1mode = 1
-      paddles[3] = 1
+  if key.name == "up" then
   
-    elseif key.name == "down" then
-      
-      paddle1mode = 1
-      paddles[3] = -1
+    paddle1mode = 1
+    paddles[3] = 1
   
-    end
+  elseif key.name == "down" then
     
-    if key.name == "space" then    
-    
-      if vb.views.start_stop.text == "STOP" then
-        stop_game()      
-      elseif vb.views.start_stop.text == "START" then 
-        start_game()       
-      end   
-    
-    end
-    
-  elseif key.state == "released" then
-    
-    paddles[3] = 0
-    
+    paddle1mode = 1
+    paddles[3] = -1
+  
+  end
+  
+  if key.name == "space" then    
+  
+    if vb.views.start_stop.text == "STOP" then
+  	  stop_game()      
+    elseif vb.views.start_stop.text == "START" then 
+  	  start_game()       
+    end   
+  
   end
   
 end
@@ -1672,7 +1664,7 @@ end
 --SHOW PADDLES WINDOW--------------------------------------------------------------------------------
 local function show_paddles_window()
   if not paddles_window_obj or not paddles_window_obj.visible then
-    paddles_window_obj = app:show_custom_dialog(window_title, window_content, key_handler, key_handler_options)
+    paddles_window_obj = app:show_custom_dialog(window_title, window_content, key_handler)
   else paddles_window_obj:show()
   end  
   
