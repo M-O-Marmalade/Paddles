@@ -1,3 +1,5 @@
-A game for [Renoise](https://www.renoise.com/products/renoise) - [**Download**](https://www.renoise.com/tools/paddles)
+A game for [Renoise](https://www.renoise.com/products/renoise)
+
+## [Official Website](https://aqu.surf/paddles)
 
 ![Gameplay](Artwork/paddles-demo.apng)
