@@ -12,8 +12,8 @@ A game for [Renoise](https://www.renoise.com/products/renoise).
 ![Gameplay](Artwork/paddles-demo.apng)
 
 ## Installation
-1. Download the [latest release](https://www.renoise.com/tools/paddles).
-2. [Install Renoise](https://www.renoise.com/download) (or the Renoise demo) if you don't already have it.
+1. Download the [latest release](https://www.renoise.com/sites/default/files/tools/mom.MOMarmalade.Paddles-V3.0-R3.3-L6.1.xrnx).
+2. [Install Renoise](https://www.renoise.com/download) if you don't already have it.
 3. Launch Renoise.
 4. Drag and drop the downloaded Paddles file (.xrnx) onto the Renoise application window.
 
